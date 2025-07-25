@@ -26,3 +26,13 @@ body{
 .info-section {
     border: 1px solid #bfdbfe; /* border-blue-200 */
 }
+
+/* Game Grid Styling */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 0.5rem; /* gap-2 */
+    margin: 1.5rem auto; /* my-6 */
+    max-width: 300px; /* Adjust grid size */
+}
+
