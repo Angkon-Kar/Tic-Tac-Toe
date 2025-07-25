@@ -36,3 +36,16 @@ body{
     max-width: 300px; /* Adjust grid size */
 }
 
+.cell {
+    width: 100px; /* Fixed width for cells */
+    height: 100px; /* Fixed height for cells */
+    background-color: #e2e8f0; /* bg-gray-200 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3.5rem; /* text-6xl */
+    font-weight: 700; /* font-bold */
+    cursor: pointer;
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: background-color 0.2s, transform 0.1s;
+}
