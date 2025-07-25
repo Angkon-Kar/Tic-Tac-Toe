@@ -21,3 +21,8 @@ body{
     width: 100%;
     max-width: 450px; /* Slightly wider for new elements */
 }
+
+/* Info Section (User ID, Game ID) */
+.info-section {
+    border: 1px solid #bfdbfe; /* border-blue-200 */
+}
