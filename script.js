@@ -12,7 +12,7 @@ import { getAnalytics } from "firebase/analytics";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDDVFjXyYwV3x6NKGTc892a9PzHPsq4Sr8",
+  apiKey: "AIzaSyD1EunADEEbG8WGbLfcpMl0V62rK_WYO9Y",
   authDomain: "ak-tic-tac-toe-game-3.firebaseapp.com",
   projectId: "ak-tic-tac-toe-game-3",
   storageBucket: "ak-tic-tac-toe-game-3.firebasestorage.app",
