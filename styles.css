@@ -1,6 +1,5 @@
 /* General Body and Container Styling */
-
-body{
+body {
     font-family: 'Inter', sans-serif;
     background-color: #f0f2f5;
     display: flex;
@@ -12,7 +11,7 @@ body{
     box-sizing: border-box;
 }
 
-.game-container{
+.game-container {
     background-color: #ffffff;
     border-radius: 1rem; /* rounded-xl */
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
@@ -180,5 +179,3 @@ body{
         padding: 1rem;
     }
 }
-
-
