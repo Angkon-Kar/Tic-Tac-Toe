@@ -71,3 +71,17 @@ body{
     color: #334155; /* text-slate-700 */
 }
 
+/* Action Buttons (Create Game, Join Game, Reset Game) */
+.action-button, .reset-button, .mode-button {
+    color: #ffffff; /* text-white */
+    padding: 0.75rem 1.5rem; /* py-3 px-6 */
+    border-radius: 0.75rem; /* rounded-xl */
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 700; /* font-bold */
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    display: inline-block; /* For proper spacing with text */
+    margin: 0.5rem; /* Added margin for mode buttons */
+}
