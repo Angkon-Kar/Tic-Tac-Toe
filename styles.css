@@ -49,3 +49,17 @@ body{
     border-radius: 0.5rem; /* rounded-lg */
     transition: background-color 0.2s, transform 0.1s;
 }
+
+.cell:hover:not(.filled) {
+    background-color: #cbd5e1; /* bg-gray-300 */
+    transform: scale(1.02);
+}
+
+.cell.x-player {
+    color: #3b82f6; /* text-blue-500 */
+}
+
+.cell.o-player {
+    color: #ef4444; /* text-red-500 */
+}
+
