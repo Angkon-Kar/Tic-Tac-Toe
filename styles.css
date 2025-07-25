@@ -95,3 +95,11 @@ body{
     transform: translateY(0);
     box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
 }
+
+.reset-button {
+    background-color: #10b981; /* bg-emerald-500 */
+}
+
+.reset-button:hover {
+    background-color: #059669; /* bg-emerald-600 */
+}
