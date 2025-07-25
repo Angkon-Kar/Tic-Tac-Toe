@@ -3,10 +3,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Global variables for Firebase and app ID
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-tic-tac-toe-app';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// === START: Your Firebase Project Configuration ===
+// IMPORTANT: Replace these placeholder values with your actual project's configuration
+// You can find these in your Firebase Console -> Project settings -> "Your apps" section -> "Config" button
+const firebaseConfig = {
+    apiKey: "YOUR_ACTUAL_API_KEY",              // Example: "AIzaSyC..."
+    authDomain: "YOUR_ACTUAL_AUTH_DOMAIN",      // Example: "your-project-id.firebaseapp.com"
+    projectId: "YOUR_ACTUAL_PROJECT_ID",        // Example: "your-project-id"
+    storageBucket: "YOUR_ACTUAL_STORAGE_BUCKET", // Example: "your-project-id.appspot.com"
+    messagingSenderId: "YOUR_ACTUAL_MESSAGING_SENDER_ID", // Example: "1234567890"
+    appId: "YOUR_ACTUAL_APP_ID",                // Example: "1:1234567890:web:abcdef123456"
+    // measurementId: "G-XXXXXXXXXX" // Include if provided and needed, otherwise you can remove it
+};
+
+// This `appId` is used to organize your game data within Firestore under `artifacts/{appId}/...`
+// You can set it to your Firebase projectId, or any descriptive string like "tic-tac-toe-game"
+const appIdentifier = "tic-tac-toe-game-online"; // Renamed from 'appId' to avoid confusion with firebaseConfig.appId
+
+// For anonymous sign-in, you likely won't need an initial custom auth token.
+const initialAuthToken = null; // Keep as null for anonymous sign-in
+// === END: Your Firebase Project Configuration ===
+
 
 // Firebase instances
 let app;
@@ -24,7 +41,7 @@ let gameMode = null; // 'localPvP', 'onlinePvP', 'PvC'
 let currentGameId = null; // ID of the current online game
 let currentPlayerRole = null; // 'X' or 'O' for the current user in online game
 let unsubscribeGameListener = null; // To store the Firestore unsubscribe function
-let hasPendingOnlineLobbyRequest = false; // New flag to track pending online lobby request
+let hasPendingOnlineLobbyRequest = false; // Flag to track pending online lobby request for auth
 
 // Winning combinations for Tic Tac Toe
 const winningConditions = [
@@ -91,7 +108,7 @@ async function initializeFirebaseAndAuth() {
                 if (hasPendingOnlineLobbyRequest) {
                     hideModal(); // Hide the authentication modal
                     showOnlineLobbyInternal(); // Directly show the lobby
-                    hasPendingOnlineLandingRequest = false; // Reset the flag
+                    hasPendingOnlineLobbyRequest = false; // Corrected flag name here
                 }
             } else {
                 if (initialAuthToken) {
@@ -103,7 +120,7 @@ async function initializeFirebaseAndAuth() {
         });
     } catch (error) {
         console.error("Error initializing Firebase or authenticating:", error);
-        showModal("Failed to initialize Firebase. Online mode may not work.");
+        showModal("Failed to initialize Firebase. Online mode may not work. Check console for details.");
     }
 }
 
@@ -190,6 +207,27 @@ function resetGameLocalState() {
 }
 
 /**
+ * Helper function to check for win conditions.
+ * @param {Array<string>} currentBoard - The current state of the board.
+ * @returns {string|null} 'X', 'O' if a player wins, or null if no winner yet.
+ */
+function checkWin(currentBoard) {
+    for (let i = 0; i < winningConditions.length; i++) {
+        const winCondition = winningConditions[i];
+        const a = currentBoard[winCondition[0]];
+        const b = currentBoard[winCondition[1]];
+        const c = currentBoard[winCondition[2]];
+
+        if (a === '' || b === '' || c === '') continue;
+        if (a === b && b === c) {
+            return a; // Returns 'X' or 'O' (the winning player)
+        }
+    }
+    return null; // No winner yet
+}
+
+
+/**
  * Starts a new game based on the selected mode.
  * @param {string} mode - The game mode ('localPvP', 'onlinePvP', 'PvC').
  */
@@ -202,8 +240,6 @@ function startGame(mode) {
         gameStatus.textContent = `Player X's Turn`;
     } else if (gameMode === 'PvC') {
         gameStatus.textContent = `Player X's Turn`;
-        // If AI is 'O' and starts first (not in this game, player X always starts)
-        // No need to call makeAIMove here as player X (user) always starts.
     }
     // For onlinePvP, status is managed by Firestore listener
 }
@@ -229,7 +265,7 @@ async function handleCellClick(clickedCellEvent) {
     } else if (gameMode === 'onlinePvP' && currentGameId && currentPlayerRole) {
         // Online game logic (requires Firestore update)
         // Fetch current game state to avoid race conditions
-        const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, currentGameId);
+        const gameDocRef = doc(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`, currentGameId);
         const gameDocSnap = await getDoc(gameDocRef);
 
         if (!gameDocSnap.exists()) {
@@ -245,44 +281,35 @@ async function handleCellClick(clickedCellEvent) {
             return; // Invalid move
         }
 
-        // Update board and check for win/draw
-        gameData.board[clickedCellIndex] = currentPlayerRole;
+        // Create a copy of the board to modify
+        const updatedBoard = [...gameData.board];
+        updatedBoard[clickedCellIndex] = currentPlayerRole;
+
         let newStatusMessage = '';
         let newGameActive = true;
         let winner = null;
 
-        let roundWon = false;
-        for (let i = 0; i < winningConditions.length; i++) {
-            const winCondition = winningConditions[i];
-            const a = gameData.board[winCondition[0]];
-            const b = gameData.board[winCondition[1]];
-            const c = gameData.board[winCondition[2]];
+        const currentWinner = checkWin(updatedBoard);
 
-            if (a === '' || b === '' || c === '') continue;
-            if (a === b && b === c) {
-                roundWon = true;
-                break;
-            }
-        }
-
-        if (roundWon) {
-            newStatusMessage = `Player ${currentPlayerRole} Wins!`;
+        if (currentWinner) {
+            newStatusMessage = `Player ${currentWinner} Wins!`;
             newGameActive = false;
-            winner = currentPlayerRole;
-        } else if (!gameData.board.includes('')) {
+            winner = currentWinner;
+        } else if (!updatedBoard.includes('')) {
             newStatusMessage = 'It\'s a Draw!';
             newGameActive = false;
             winner = 'Draw';
         } else {
-            gameData.currentPlayer = (currentPlayerRole === 'X' ? 'O' : 'X');
-            newStatusMessage = `Player ${gameData.currentPlayer}'s Turn`;
+            const nextPlayer = (currentPlayerRole === 'X' ? 'O' : 'X');
+            newStatusMessage = `Player ${nextPlayer}'s Turn`;
+            gameData.currentPlayer = nextPlayer; // Update for Firestore
         }
 
         // Update Firestore
         try {
             await updateDoc(gameDocRef, {
-                board: gameData.board,
-                currentPlayer: gameData.currentPlayer,
+                board: updatedBoard,
+                currentPlayer: gameData.currentPlayer, // This will be the next player or the current if game ended
                 gameActive: newGameActive,
                 statusMessage: newStatusMessage,
                 winner: winner
@@ -299,24 +326,10 @@ async function handleCellClick(clickedCellEvent) {
  * Checks for win/draw conditions for local and PvC modes.
  */
 function checkForGameEndLocal() {
-    let roundWon = false;
-    for (let i = 0; i < winningConditions.length; i++) {
-        const winCondition = winningConditions[i];
-        const a = board[winCondition[0]];
-        const b = board[winCondition[1]];
-        const c = board[winCondition[2]];
+    const currentWinner = checkWin(board);
 
-        if (a === '' || b === '' || c === '') {
-            continue;
-        }
-        if (a === b && b === c) {
-            roundWon = true;
-            break;
-        }
-    }
-
-    if (roundWon) {
-        gameStatus.textContent = `Player ${currentPlayer} Wins!`;
+    if (currentWinner) {
+        gameStatus.textContent = `Player ${currentWinner} Wins!`;
         gameActive = false;
         return;
     }
@@ -381,7 +394,7 @@ async function handleResetGame() {
         // Online reset: Player X resets the game in Firestore, Player O leaves.
         if (currentPlayerRole === 'X') {
             try {
-                const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, currentGameId);
+                const gameDocRef = doc(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`, currentGameId);
                 await updateDoc(gameDocRef, {
                     board: ['', '', '', '', '', '', '', '', ''],
                     currentPlayer: 'X',
@@ -396,7 +409,7 @@ async function handleResetGame() {
             }
         } else if (currentPlayerRole === 'O') {
             try {
-                const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, currentGameId);
+                const gameDocRef = doc(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`, currentGameId);
                 const gameDocSnap = await getDoc(gameDocRef);
                 if (gameDocSnap.exists() && gameDocSnap.data().playerOId === userId) {
                     await updateDoc(gameDocRef, {
@@ -424,7 +437,7 @@ async function createNewOnlineGame() {
     }
 
     try {
-        const gamesCollectionRef = collection(db, `artifacts/${appId}/public/data/ticTacToeGames`);
+        const gamesCollectionRef = collection(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`);
         const newGameRef = await addDoc(gamesCollectionRef, {
             board: ['', '', '', '', '', '', '', '', ''],
             currentPlayer: 'X',
@@ -466,7 +479,7 @@ async function joinOnlineGame(gameIdToJoin) {
     }
 
     try {
-        const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, gameIdToJoin);
+        const gameDocRef = doc(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`, gameIdToJoin);
         const gameDocSnap = await getDoc(gameDocRef);
 
         if (!gameDocSnap.exists()) {
@@ -513,7 +526,7 @@ async function joinOnlineGame(gameIdToJoin) {
  * @param {string} gameId - The ID of the game to listen to.
  */
 function listenToOnlineGameUpdates(gameId) {
-    const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, gameId);
+    const gameDocRef = doc(db, `artifacts/${appIdentifier}/public/data/ticTacToeGames`, gameId);
 
     // Unsubscribe from previous listener if any
     if (unsubscribeGameListener) {
@@ -597,16 +610,16 @@ backToModesFromGame.addEventListener('click', showModeSelection);
 // Modal Close Button
 modalCloseButton.addEventListener('click', hideModal);
 
-// Copy Game ID Button
-copyGameIdButton.addEventListener('click', () => {
+// Copy Game ID Button - Using modern Clipboard API
+copyGameIdButton.addEventListener('click', async () => {
     if (currentGameId) {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = currentGameId;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        showModal("Game ID copied to clipboard!");
+        try {
+            await navigator.clipboard.writeText(currentGameId);
+            showModal("Game ID copied to clipboard!");
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            showModal("Failed to copy Game ID. Please copy manually.");
+        }
     } else {
         showModal("No active game ID to copy.");
     }
