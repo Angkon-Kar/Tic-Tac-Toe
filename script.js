@@ -24,12 +24,13 @@ let gameMode = null; // 'localPvP', 'onlinePvP', 'PvC'
 let currentGameId = null; // ID of the current online game
 let currentPlayerRole = null; // 'X' or 'O' for the current user in online game
 let unsubscribeGameListener = null; // To store the Firestore unsubscribe function
+let hasPendingOnlineLobbyRequest = false; // New flag to track pending online lobby request
 
 // Winning combinations for Tic Tac Toe
 const winningConditions = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
     [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-    [0, 4, 8], [2, 4, 6]             // Diagonals
+    [0, 4, 8], [2, 4, 6] // Diagonals
 ];
 
 // DOM Elements
@@ -37,7 +38,6 @@ const modeSelection = document.getElementById('modeSelection');
 const localPvPButton = document.getElementById('localPvPButton');
 const onlinePvPButton = document.getElementById('onlinePvPButton');
 const pvcModeButton = document.getElementById('pvcModeButton');
-
 const onlineLobbySection = document.getElementById('onlineLobbySection');
 const userIdDisplay = document.getElementById('userIdDisplay');
 const gameIdDisplay = document.getElementById('gameIdDisplay');
@@ -46,13 +46,11 @@ const createGameButton = document.getElementById('createGameButton');
 const joinGameIdInput = document.getElementById('joinGameIdInput');
 const joinGameButton = document.getElementById('joinGameButton');
 const backToModesFromOnline = document.getElementById('backToModesFromOnline');
-
 const gameArea = document.getElementById('gameArea');
 const gameStatus = document.getElementById('gameStatus');
 const cells = document.querySelectorAll('.cell');
 const resetButton = document.getElementById('resetButton');
 const backToModesFromGame = document.getElementById('backToModesFromGame');
-
 const customModal = document.getElementById('customModal');
 const modalMessage = document.getElementById('modalMessage');
 const modalCloseButton = document.getElementById('modalCloseButton');
@@ -88,6 +86,13 @@ async function initializeFirebaseAndAuth() {
                 userId = user.uid;
                 userIdDisplay.textContent = userId;
                 console.log("Authenticated with user ID:", userId);
+
+                // If there was a pending request to show the online lobby, fulfill it now
+                if (hasPendingOnlineLobbyRequest) {
+                    hideModal(); // Hide the authentication modal
+                    showOnlineLobbyInternal(); // Directly show the lobby
+                    hasPendingOnlineLandingRequest = false; // Reset the flag
+                }
             } else {
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
@@ -103,34 +108,9 @@ async function initializeFirebaseAndAuth() {
 }
 
 /**
- * Shows the mode selection screen and hides other sections.
+ * Internal function to show the online lobby, assuming authentication is done.
  */
-function showModeSelection() {
-    modeSelection.classList.remove('hidden');
-    onlineLobbySection.classList.add('hidden');
-    gameArea.classList.add('hidden');
-    // Reset game state when returning to mode selection
-    resetGameLocalState();
-    gameStatus.textContent = ''; // Clear status
-    gameIdDisplay.textContent = 'None';
-    joinGameIdInput.value = '';
-    currentGameId = null;
-    currentPlayerRole = null;
-    // Unsubscribe from any active online game listener
-    if (unsubscribeGameListener) {
-        unsubscribeGameListener();
-        unsubscribeGameListener = null;
-    }
-}
-
-/**
- * Shows the online lobby section and hides other sections.
- */
-function showOnlineLobby() {
-    if (!userId) {
-        showModal("Please wait, authenticating for online mode...");
-        return;
-    }
+function showOnlineLobbyInternal() {
     modeSelection.classList.add('hidden');
     onlineLobbySection.classList.remove('hidden');
     gameArea.classList.add('hidden');
@@ -140,11 +120,48 @@ function showOnlineLobby() {
     joinGameIdInput.value = '';
     currentGameId = null;
     currentPlayerRole = null;
+
     // Unsubscribe from any active online game listener
     if (unsubscribeGameListener) {
         unsubscribeGameListener();
         unsubscribeGameListener = null;
     }
+}
+
+/**
+ * Public function to show the online lobby, handles authentication check.
+ */
+function showOnlineLobby() {
+    if (!userId) {
+        hasPendingOnlineLobbyRequest = true;
+        showModal("Please wait, authenticating for online mode...");
+        return;
+    }
+    showOnlineLobbyInternal();
+}
+
+/**
+ * Shows the mode selection screen and hides other sections.
+ */
+function showModeSelection() {
+    modeSelection.classList.remove('hidden');
+    onlineLobbySection.classList.add('hidden');
+    gameArea.classList.add('hidden');
+
+    // Reset game state when returning to mode selection
+    resetGameLocalState();
+    gameStatus.textContent = ''; // Clear status
+    gameIdDisplay.textContent = 'None';
+    joinGameIdInput.value = '';
+    currentGameId = null;
+    currentPlayerRole = null;
+
+    // Unsubscribe from any active online game listener
+    if (unsubscribeGameListener) {
+        unsubscribeGameListener();
+        unsubscribeGameListener = null;
+    }
+    hasPendingOnlineLobbyRequest = false; // Reset this flag when leaving online flow
 }
 
 /**
@@ -240,6 +257,7 @@ async function handleCellClick(clickedCellEvent) {
             const a = gameData.board[winCondition[0]];
             const b = gameData.board[winCondition[1]];
             const c = gameData.board[winCondition[2]];
+
             if (a === '' || b === '' || c === '') continue;
             if (a === b && b === c) {
                 roundWon = true;
@@ -344,7 +362,6 @@ function makeAIMove() {
         board[aiMoveIndex] = currentPlayer;
         cells[aiMoveIndex].textContent = currentPlayer;
         cells[aiMoveIndex].classList.add('filled', 'o-player');
-
         checkForGameEndLocal();
     }
 }
@@ -405,6 +422,7 @@ async function createNewOnlineGame() {
         showModal("Please wait, authenticating user...");
         return;
     }
+
     try {
         const gamesCollectionRef = collection(db, `artifacts/${appId}/public/data/ticTacToeGames`);
         const newGameRef = await addDoc(gamesCollectionRef, {
@@ -426,7 +444,6 @@ async function createNewOnlineGame() {
 
         startGame('onlinePvP'); // Switch to game view
         listenToOnlineGameUpdates(currentGameId); // Start listening for updates
-
     } catch (error) {
         console.error("Error creating new online game:", error);
         showModal("Failed to create online game. Please try again.");
@@ -442,6 +459,7 @@ async function joinOnlineGame(gameIdToJoin) {
         showModal("Please wait, authenticating user...");
         return;
     }
+
     if (!gameIdToJoin) {
         showModal("Please enter a Game ID to join.");
         return;
@@ -484,7 +502,6 @@ async function joinOnlineGame(gameIdToJoin) {
 
         startGame('onlinePvP'); // Switch to game view
         listenToOnlineGameUpdates(currentGameId); // Start listening for updates
-
     } catch (error) {
         console.error("Error joining online game:", error);
         showModal("Failed to join online game. Please try again.");
@@ -529,7 +546,6 @@ function listenToOnlineGameUpdates(gameId) {
             cells.forEach((cell, index) => {
                 const isMyTurn = gameData.currentPlayer === currentPlayerRole;
                 const isCellEmpty = gameData.board[index] === '';
-
                 if (gameActive && isMyTurn && isCellEmpty) {
                     cell.style.pointerEvents = 'auto'; // Enable clicks
                     cell.classList.remove('cursor-not-allowed');
@@ -545,6 +561,7 @@ function listenToOnlineGameUpdates(gameId) {
             } else {
                 resetButton.style.display = 'none';
             }
+
         } else {
             console.log("Online game document no longer exists.");
             showModal("The online game you were in has ended or was deleted.");
@@ -557,13 +574,12 @@ function listenToOnlineGameUpdates(gameId) {
     });
 }
 
-
 // --- Event Listeners ---
 window.onload = initializeFirebaseAndAuth; // Initialize Firebase on page load
 
 // Mode Selection Buttons
 localPvPButton.addEventListener('click', () => startGame('localPvP'));
-onlinePvPButton.addEventListener('click', showOnlineLobby);
+onlinePvPButton.addEventListener('click', showOnlineLobby); // This now calls the wrapper function
 pvcModeButton.addEventListener('click', () => startGame('PvC'));
 
 // Online Lobby Buttons
