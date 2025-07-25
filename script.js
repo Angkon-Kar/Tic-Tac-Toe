@@ -3,6 +3,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDDVFjXyYwV3x6NKGTc892a9PzHPsq4Sr8",
+  authDomain: "ak-tic-tac-toe-game-3.firebaseapp.com",
+  projectId: "ak-tic-tac-toe-game-3",
+  storageBucket: "ak-tic-tac-toe-game-3.firebasestorage.app",
+  messagingSenderId: "437811263623",
+  appId: "1:437811263623:web:5e93e8e73d1f4bfdd1e022",
+  measurementId: "G-KWBP59VV82"
+};
 
 
 // Firebase instances
