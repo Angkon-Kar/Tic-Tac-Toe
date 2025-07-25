@@ -14,8 +14,8 @@ A classic Tic-Tac-Toe game built with HTML, CSS, and JavaScript, featuring three
 
 You can play the game live at:
 
-* **GitHub Pages:** [https://angkon-kar.github.io/Tic-Tac-Toe/](https://angkon-kar.github.io/Tic-Tac-Toe/)
-* **Netlify:** [https://aktictactoegame.netlify.app/](https://aktictactoegame.netlify.app/)
+* **GitHub Pages:** [GitHub Live Link](https://angkon-kar.github.io/Tic-Tac-Toe/)
+* **Netlify:** [Netlify Live Link](https://aktictactoegame.netlify.app/)
 
 ## 🎮 How to Play
 
