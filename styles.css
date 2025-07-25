@@ -85,3 +85,13 @@ body{
     display: inline-block; /* For proper spacing with text */
     margin: 0.5rem; /* Added margin for mode buttons */
 }
+
+.action-button:hover, .reset-button:hover, .mode-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+.action-button:active, .reset-button:active, .mode-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+}
