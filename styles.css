@@ -112,3 +112,21 @@ body{
     background-color: #3b82f6; /* bg-blue-500 */
 }
 
+/* Back Button */
+.back-button {
+    background-color: #6b7280; /* bg-gray-500 */
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: 1rem;
+}
+
+.back-button:hover {
+    background-color: #4b5563; /* bg-gray-600 */
+    transform: translateY(-1px);
+}
