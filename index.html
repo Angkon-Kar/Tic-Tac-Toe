@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe Game</title>
+    <title>Tic Tac Toe - All Modes</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles.css"/>
-    <link rel="icon" type="image/png" href="tic-tac-toe.png">
+    <!-- Link to your custom CSS file -->
+    <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
-
     <div class="game-container">
         <h1 class="text-4xl font-bold text-gray-800 mb-6">Tic Tac Toe</h1>
-
 
         <!-- Mode Selection Screen -->
         <div id="modeSelection" class="mode-selection">
@@ -24,7 +21,6 @@
             <button id="onlinePvPButton" class="mode-button">Online 2-Player</button>
             <button id="pvcModeButton" class="mode-button">Player vs. Computer</button>
         </div>
-
 
         <!-- Online Multiplayer Lobby Section -->
         <div id="onlineLobbySection" class="hidden lobby-section">
@@ -35,14 +31,13 @@
                     <button id="copyGameIdButton" class="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-colors duration-200">Copy</button>
                 </p>
             </div>
-                <button id="createGameButton" class="action-button bg-green-500 hover:bg-green-600">Create New Game</button>
+            <button id="createGameButton" class="action-button bg-green-500 hover:bg-green-600">Create New Game</button>
             <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
                 <input type="text" id="joinGameIdInput" placeholder="Enter Game ID" class="flex-grow p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <button id="joinGameButton" class="action-button bg-purple-500 hover:bg-purple-600 w-full sm:w-auto">Join Game</button>
             </div>
-                <button id="backToModesFromOnline" class="back-button mt-4">Back to Modes</button>
+            <button id="backToModesFromOnline" class="back-button mt-4">Back to Modes</button>
         </div>
-
 
         <!-- Game Board Section (used by all modes) -->
         <div id="gameArea" class="hidden">
@@ -58,23 +53,20 @@
                 <div class="cell" data-cell-index="7"></div>
                 <div class="cell" data-cell-index="8"></div>
             </div>
-                <button class="reset-button" id="resetButton">Reset Game</button>
-                <button id="backToModesFromGame" class="back-button mt-4">Back to Modes</button>
+            <button class="reset-button" id="resetButton">Reset Game</button>
+            <button id="backToModesFromGame" class="back-button mt-4">Back to Modes</button>
         </div>
     </div>
 
-
-        <!-- Custom Modal for messages -->
-        <div id="customModal" class="modal-overlay hidden">
-            <div class="modal-content">
-                <p id="modalMessage" class="text-lg font-semibold text-gray-800"></p>
-                <button id="modalCloseButton" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">OK</button>
-            </div>
+    <!-- Custom Modal for messages -->
+    <div id="customModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-lg font-semibold text-gray-800"></p>
+            <button id="modalCloseButton" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">OK</button>
         </div>
+    </div>
 
-
-
-
+    <!-- This is the ONLY script tag for your game's logic -->
     <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -1,16 +1,10 @@
-// Import Firebase services
+// Import Firebase services - These should be the ONLY import statements for Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Global variables for Firebase and app ID
+// PASTE YOUR ACTUAL FIREBASE CONFIGURATION HERE
 const firebaseConfig = {
   apiKey: "AIzaSyD1EunADEEbG8WGbLfcpMl0V62rK_WYO9Y",
   authDomain: "ak-tic-tac-toe-game-3.firebaseapp.com",
@@ -20,9 +14,13 @@ const firebaseConfig = {
   appId: "1:437811263623:web:5e93e8e73d1f4bfdd1e022",
   measurementId: "G-KWBP59VV82"
 };
+// Use the projectId from your firebaseConfig as the appId for consistency
+const appId = firebaseConfig.projectId;
 
+// initialAuthToken is only for the Canvas environment, not needed for external deployment
+const initialAuthToken = null;
 
-// Firebase instances
+// Firebase instances (declared once with 'let', values assigned later in initializeFirebaseAndAuth)
 let app;
 let db;
 let auth;
@@ -79,6 +77,7 @@ const modalCloseButton = document.getElementById('modalCloseButton');
 function showModal(message) {
     modalMessage.textContent = message;
     customModal.classList.remove('hidden');
+    console.log("Modal shown:", message); // Debugging
 }
 
 /**
@@ -86,6 +85,7 @@ function showModal(message) {
  */
 function hideModal() {
     customModal.classList.add('hidden');
+    console.log("Modal hidden."); // Debugging
 }
 
 /**
@@ -93,10 +93,13 @@ function hideModal() {
  * This runs once when the page loads.
  */
 async function initializeFirebaseAndAuth() {
+    console.log("Attempting to initialize Firebase and authenticate..."); // Debugging
     try {
+        // Ensure app, db, and auth are only assigned here, not declared with const/let again
         app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
+        console.log("Firebase app initialized."); // Debugging
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -112,16 +115,19 @@ async function initializeFirebaseAndAuth() {
                 }
 
             } else {
+                console.log("No user signed in, attempting anonymous sign-in..."); // Debugging
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Signed in with custom token."); // Debugging
                 } else {
                     await signInAnonymously(auth);
+                    console.log("Signed in anonymously."); // Debugging
                 }
             }
         });
     } catch (error) {
         console.error("Error initializing Firebase or authenticating:", error);
-        showModal("Failed to initialize Firebase. Online mode may not work.");
+        showModal("Failed to initialize Firebase. Online mode may not work. Check console for details."); // More info
     }
 }
 
@@ -129,6 +135,7 @@ async function initializeFirebaseAndAuth() {
  * Internal function to show the online lobby, assuming authentication is done.
  */
 function showOnlineLobbyInternal() {
+    console.log("Showing online lobby internal."); // Debugging
     modeSelection.classList.add('hidden');
     onlineLobbySection.classList.remove('hidden');
     gameArea.classList.add('hidden');
@@ -149,6 +156,7 @@ function showOnlineLobbyInternal() {
  * Public function to show the online lobby, handles authentication check.
  */
 function showOnlineLobby() {
+    console.log("Online 2-Player button clicked."); // Debugging
     if (!userId) {
         hasPendingOnlineLobbyRequest = true;
         showModal("Please wait, authenticating for online mode...");
@@ -162,6 +170,7 @@ function showOnlineLobby() {
  * Shows the mode selection screen and hides other sections.
  */
 function showModeSelection() {
+    console.log("Showing mode selection."); // Debugging
     modeSelection.classList.remove('hidden');
     onlineLobbySection.classList.add('hidden');
     gameArea.classList.add('hidden');
@@ -184,6 +193,7 @@ function showModeSelection() {
  * Shows the game area and hides other sections.
  */
 function showGameArea() {
+    console.log("Showing game area."); // Debugging
     modeSelection.classList.add('hidden');
     onlineLobbySection.classList.add('hidden');
     gameArea.classList.remove('hidden');
@@ -195,6 +205,7 @@ function showGameArea() {
  * Resets the local game board and state variables.
  */
 function resetGameLocalState() {
+    console.log("Resetting local game state."); // Debugging
     board = ['', '', '', '', '', '', '', '', ''];
     currentPlayer = 'X';
     gameActive = true;
@@ -210,6 +221,7 @@ function resetGameLocalState() {
  * @param {string} mode - The game mode ('localPvP', 'onlinePvP', 'PvC').
  */
 function startGame(mode) {
+    console.log("Starting game in mode:", mode); // Debugging
     gameMode = mode;
     resetGameLocalState();
     showGameArea(); // Show the game board
@@ -231,8 +243,10 @@ function startGame(mode) {
  */
 async function handleCellClick(clickedCellEvent) {
     const clickedCellIndex = parseInt(clickedCellEvent.target.getAttribute('data-cell-index'));
+    console.log("Cell clicked:", clickedCellIndex, "Mode:", gameMode); // Debugging
 
     if (board[clickedCellIndex] !== '' || !gameActive) {
+        console.log("Invalid click: cell filled or game not active."); // Debugging
         return; // Cell already filled or game not active
     }
 
@@ -258,6 +272,7 @@ async function handleCellClick(clickedCellEvent) {
 
         // Check if it's this player's turn and the cell is empty
         if (gameData.board[clickedCellIndex] !== '' || gameData.currentPlayer !== currentPlayerRole) {
+            console.log("Invalid online move: not your turn or cell filled."); // Debugging
             return; // Invalid move
         }
 
@@ -314,6 +329,7 @@ async function handleCellClick(clickedCellEvent) {
  * Checks for win/draw conditions for local and PvC modes.
  */
 function checkForGameEndLocal() {
+    console.log("Checking for local game end."); // Debugging
     let roundWon = false;
     for (let i = 0; i < winningConditions.length; i++) {
         const winCondition = winningConditions[i];
@@ -333,6 +349,7 @@ function checkForGameEndLocal() {
     if (roundWon) {
         gameStatus.textContent = `Player ${currentPlayer} Wins!`;
         gameActive = false;
+        console.log("Local game won by:", currentPlayer); // Debugging
         return;
     }
 
@@ -340,6 +357,7 @@ function checkForGameEndLocal() {
     if (roundDraw) {
         gameStatus.textContent = 'It\'s a Draw!';
         gameActive = false;
+        console.log("Local game is a draw."); // Debugging
         return;
     }
 
@@ -352,8 +370,10 @@ function checkForGameEndLocal() {
 function switchPlayerLocal() {
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     gameStatus.textContent = `Player ${currentPlayer}'s Turn`;
+    console.log("Switched player to:", currentPlayer); // Debugging
 
     if (gameMode === 'PvC' && currentPlayer === 'O' && gameActive) {
+        console.log("AI's turn, making move..."); // Debugging
         setTimeout(makeAIMove, 700); // AI's turn
     }
 }
@@ -362,6 +382,7 @@ function switchPlayerLocal() {
  * Implements the AI's move logic.
  */
 function makeAIMove() {
+    console.log("AI making move..."); // Debugging
     let availableCells = [];
     for (let i = 0; i < board.length; i++) {
         if (board[i] === '') {
@@ -379,6 +400,8 @@ function makeAIMove() {
         cells[aiMoveIndex].classList.add('filled', 'o-player');
 
         checkForGameEndLocal();
+    } else {
+        console.log("AI: No available cells."); // Debugging
     }
 }
 
@@ -387,6 +410,7 @@ function makeAIMove() {
  * Behavior differs based on game mode.
  */
 async function handleResetGame() {
+    console.log("Reset button clicked. Current mode:", gameMode); // Debugging
     if (gameMode === 'localPvP' || gameMode === 'PvC') {
         resetGameLocalState();
         gameStatus.textContent = `Player X's Turn`;
@@ -434,6 +458,7 @@ async function handleResetGame() {
  * Creates a new multiplayer game in Firestore.
  */
 async function createNewOnlineGame() {
+    console.log("Create New Game button clicked."); // Debugging
     if (!userId) {
         showModal("Please wait, authenticating user...");
         return;
@@ -471,6 +496,7 @@ async function createNewOnlineGame() {
  * @param {string} gameIdToJoin - The ID of the game to join.
  */
 async function joinOnlineGame(gameIdToJoin) {
+    console.log("Join Game button clicked with ID:", gameIdToJoin); // Debugging
     if (!userId) {
         showModal("Please wait, authenticating user...");
         return;
@@ -529,18 +555,20 @@ async function joinOnlineGame(gameIdToJoin) {
  * @param {string} gameId - The ID of the game to listen to.
  */
 function listenToOnlineGameUpdates(gameId) {
+    console.log("Listening to online game updates for ID:", gameId); // Debugging
     const gameDocRef = doc(db, `artifacts/${appId}/public/data/ticTacToeGames`, gameId);
 
     // Unsubscribe from previous listener if any
     if (unsubscribeGameListener) {
         unsubscribeGameListener();
+        console.log("Unsubscribed from previous listener."); // Debugging
     }
 
     // Set up new listener
     unsubscribeGameListener = onSnapshot(gameDocRef, (docSnap) => {
         if (docSnap.exists()) {
             const gameData = docSnap.data();
-            console.log("Online game data updated:", gameData);
+            console.log("Online game data updated:", gameData); // Debugging
 
             // Update local game state based on Firestore data
             board = gameData.board;
@@ -579,12 +607,12 @@ function listenToOnlineGameUpdates(gameId) {
                 resetButton.style.display = 'none';
             }
         } else {
-            console.log("Online game document no longer exists.");
+            console.log("Online game document no longer exists."); // Debugging
             showModal("The online game you were in has ended or was deleted.");
             showOnlineLobby(); // Reset to lobby
         }
     }, (error) => {
-        console.error("Error listening to online game updates:", error);
+        console.error("Error listening to online game updates:", error); // Debugging
         showModal("Disconnected from online game. Please try rejoining.");
         showOnlineLobby(); // Reset to lobby on error
     });
@@ -592,42 +620,53 @@ function listenToOnlineGameUpdates(gameId) {
 
 
 // --- Event Listeners ---
-window.onload = initializeFirebaseAndAuth; // Initialize Firebase on page load
+// Use DOMContentLoaded to ensure all HTML elements are loaded before attaching listeners
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM Content Loaded. Attaching event listeners."); // Debugging
 
-// Mode Selection Buttons
-localPvPButton.addEventListener('click', () => startGame('localPvP'));
-onlinePvPButton.addEventListener('click', showOnlineLobby); // This now calls the wrapper function
-pvcModeButton.addEventListener('click', () => startGame('PvC'));
+    initializeFirebaseAndAuth(); // Initialize Firebase on page load
 
-// Online Lobby Buttons
-createGameButton.addEventListener('click', createNewOnlineGame);
-joinGameButton.addEventListener('click', () => {
-    joinOnlineGame(joinGameIdInput.value.trim());
+    // Mode Selection Buttons
+    localPvPButton.addEventListener('click', () => {
+        console.log("Local 2-Player button clicked."); // Debugging
+        startGame('localPvP');
+    });
+    onlinePvPButton.addEventListener('click', showOnlineLobby); // This now calls the wrapper function
+    pvcModeButton.addEventListener('click', () => {
+        console.log("Player vs. Computer button clicked."); // Debugging
+        startGame('PvC');
+    });
+
+    // Online Lobby Buttons
+    createGameButton.addEventListener('click', createNewOnlineGame);
+    joinGameButton.addEventListener('click', () => {
+        joinOnlineGame(joinGameIdInput.value.trim());
+    });
+    backToModesFromOnline.addEventListener('click', showModeSelection);
+
+    // Game Area Buttons (universal for all modes)
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    resetButton.addEventListener('click', handleResetGame);
+    backToModesFromGame.addEventListener('click', showModeSelection);
+
+    // Modal Close Button
+    modalCloseButton.addEventListener('click', hideModal);
+
+    // Copy Game ID Button
+    copyGameIdButton.addEventListener('click', () => {
+        if (currentGameId) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = currentGameId;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showModal("Game ID copied to clipboard!");
+        } else {
+            showModal("No active game ID to copy.");
+        }
+    });
+
+    // Initial view on page load
+    showModeSelection();
 });
-backToModesFromOnline.addEventListener('click', showModeSelection);
-
-// Game Area Buttons (universal for all modes)
-cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-resetButton.addEventListener('click', handleResetGame);
-backToModesFromGame.addEventListener('click', showModeSelection);
-
-// Modal Close Button
-modalCloseButton.addEventListener('click', hideModal);
-
-// Copy Game ID Button
-copyGameIdButton.addEventListener('click', () => {
-    if (currentGameId) {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = currentGameId;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        showModal("Game ID copied to clipboard!");
-    } else {
-        showModal("No active game ID to copy.");
-    }
-});
-
-// Initial view on page load
-showModeSelection();
