@@ -155,3 +155,30 @@ body{
     width: 350px;
 }
 
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    .game-container {
+        padding: 1rem;
+    }
+    .game-grid {
+        max-width: 270px; /* Smaller grid for very small screens */
+        grid-gap: 0.3rem;
+    }
+    .cell {
+        width: 90px;
+        height: 90px;
+        font-size: 3rem;
+    }
+    .status {
+        font-size: 1.25rem;
+    }
+    .action-button, .reset-button, .mode-button {
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+    }
+    .info-section {
+        padding: 1rem;
+    }
+}
+
+
