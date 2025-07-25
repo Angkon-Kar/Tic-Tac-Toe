@@ -63,3 +63,11 @@ body{
     color: #ef4444; /* text-red-500 */
 }
 
+/* Game Status Text */
+.status {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 600; /* font-semibold */
+    margin-bottom: 1.5rem; /* mb-6 */
+    color: #334155; /* text-slate-700 */
+}
+
