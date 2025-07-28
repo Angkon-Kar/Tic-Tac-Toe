@@ -1,0 +1,377 @@
+/* General Body and Container Styling */
+body {
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Base colors for light mode */
+body {
+    background-color: #f0f2f5;
+}
+.game-container {
+    background-color: #ffffff;
+}
+.info-section {
+    border: 1px solid #bfdbfe;
+}
+.cell {
+    background-color: #e2e8f0;
+}
+.cell:hover:not(.filled) {
+    background-color: #cbd5e1;
+}
+.status {
+    color: #334155;
+}
+.mode-selection h2, .online-lobby h2, .game-area h2, .public-lobby h3, .chat-section h3 {
+    color: #334155;
+}
+.score-display {
+    color: #334155;
+}
+.public-lobby {
+    background-color: #f8fafc; /* light gray */
+    border-color: #e2e8f0;
+}
+.public-lobby p, .public-lobby button {
+    color: #475569;
+}
+.chat-messages {
+    border-color: #d1d5db;
+    background-color: #ffffff;
+}
+.chat-input {
+    background-color: #ffffff;
+    color: #1a202c;
+}
+.modal-content {
+    background-color: #ffffff;
+}
+.modal-content p {
+    color: #334155;
+}
+
+/* Dark mode styles */
+body.dark {
+    background-color: #1a202c; /* dark gray */
+}
+body.dark .game-container {
+    background-color: #2d3748; /* slightly lighter dark gray */
+}
+body.dark .info-section {
+    border: 1px solid #4a5568; /* darker blue border */
+}
+body.dark .cell {
+    background-color: #4a5568; /* darker gray */
+}
+body.dark .cell:hover:not(.filled) {
+    background-color: #64748b; /* even darker gray */
+}
+body.dark .status {
+    color: #cbd5e1; /* light gray text */
+}
+body.dark .mode-selection h2, body.dark .online-lobby h2, body.dark .game-area h2, body.dark .public-lobby h3, body.dark .chat-section h3 {
+    color: #e2e8f0; /* light gray text */
+}
+body.dark .score-display {
+    color: #e2e8f0;
+}
+body.dark .public-lobby {
+    background-color: #2d3748; /* darker background for lobby */
+    border-color: #4a5568;
+}
+body.dark .public-lobby p, body.dark .public-lobby button {
+    color: #a0aec0; /* lighter gray text */
+}
+body.dark .chat-messages {
+    border-color: #4a5568;
+    background-color: #2d3748;
+}
+body.dark .chat-input {
+    background-color: #4a5568;
+    color: #e2e8f0;
+}
+body.dark .modal-content {
+    background-color: #2d3748;
+}
+body.dark .modal-content p {
+    color: #e2e8f0;
+}
+
+
+.game-container {
+    border-radius: 1rem; /* rounded-xl */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+    padding: 2rem; /* p-8 */
+    text-align: center;
+    width: 100%;
+    max-width: 450px; /* Slightly wider for new elements */
+    position: relative; /* For theme toggle positioning */
+}
+
+/* Info Section (User ID, Game ID) */
+.info-section {
+    border: 1px solid; /* border-blue-200 */
+}
+
+/* Game Grid Styling */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 0.5rem; /* gap-2 */
+    margin: 1.5rem auto; /* my-6 */
+    max-width: 300px; /* Adjust grid size */
+}
+
+.cell {
+    width: 100px; /* Fixed width for cells */
+    height: 100px; /* Fixed height for cells */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3.5rem; /* text-6xl */
+    font-weight: 700; /* font-bold */
+    cursor: pointer;
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.cell:hover:not(.filled) {
+    transform: scale(1.02);
+}
+
+.cell.x-player {
+    color: #3b82f6; /* text-blue-500 */
+}
+
+.cell.o-player {
+    color: #ef4444; /* text-red-500 */
+}
+
+/* Winning Line Highlight */
+.cell.winning-cell {
+    background-color: #a7f3d0; /* bg-emerald-200 */
+    animation: pulse 1s infinite alternate;
+}
+body.dark .cell.winning-cell {
+    background-color: #065f46; /* darker emerald for dark mode */
+}
+
+@keyframes pulse {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(1.05); opacity: 0.8; }
+}
+
+
+/* Game Status Text */
+.status {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 600; /* font-semibold */
+    margin-bottom: 1.5rem; /* mb-6 */
+}
+
+/* Action Buttons (Create Game, Join Game, Reset Game, Mode Buttons) */
+.action-button, .reset-button, .mode-button {
+    color: #ffffff; /* text-white */
+    padding: 0.75rem 1.5rem; /* py-3 px-6 */
+    border-radius: 0.75rem; /* rounded-xl */
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 700; /* font-bold */
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    display: inline-block; /* For proper spacing with text */
+    margin: 0.5rem; /* Added margin for mode buttons */
+}
+
+.action-button:hover, .reset-button:hover, .mode-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+.action-button:active, .reset-button:active, .mode-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+}
+
+.reset-button {
+    background-color: #10b981; /* bg-emerald-500 */
+}
+
+.reset-button:hover {
+    background-color: #059669; /* bg-emerald-600 */
+}
+
+.mode-button {
+    background-color: #60a5fa; /* bg-blue-400 */
+}
+
+.mode-button:hover {
+    background-color: #3b82f6; /* bg-blue-500 */
+}
+
+/* Back Button */
+.back-button {
+    background-color: #6b7280; /* bg-gray-500 */
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: 1rem;
+}
+
+.back-button:hover {
+    background-color: #4b5563; /* bg-gray-600 */
+    transform: translateY(-1px);
+}
+
+/* Custom Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    padding: 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    max-width: 90%;
+    width: 350px;
+}
+
+/* Public Lobby specific styles */
+.public-game-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e2e8f0; /* light gray border */
+}
+body.dark .public-game-item {
+    border-bottom: 1px solid #4a5568; /* darker border */
+}
+
+.public-game-item:last-child {
+    border-bottom: none;
+}
+.public-game-item span {
+    font-size: 0.9rem;
+    color: #334155;
+}
+body.dark .public-game-item span {
+    color: #e2e8f0;
+}
+
+.public-game-item button {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    border-radius: 0.5rem;
+    background-color: #3b82f6;
+    color: white;
+    transition: background-color 0.2s;
+}
+.public-game-item button:hover {
+    background-color: #2563eb;
+}
+
+/* Chat Section */
+.chat-messages {
+    height: 160px; /* Fixed height for chat scroll */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.chat-message {
+    background-color: #e2e8f0; /* bg-gray-200 */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 80%;
+    word-wrap: break-word;
+    text-align: left;
+}
+body.dark .chat-message {
+    background-color: #4a5568; /* darker gray */
+}
+
+.chat-message.self {
+    align-self: flex-end;
+    background-color: #bfdbfe; /* bg-blue-200 */
+}
+body.dark .chat-message.self {
+    background-color: #60a5fa; /* darker blue */
+}
+
+.chat-message .sender {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #475569;
+    margin-bottom: 0.2rem;
+}
+body.dark .chat-message .sender {
+    color: #cbd5e1;
+}
+
+.chat-message .text {
+    font-size: 0.9rem;
+    color: #1a202c;
+}
+body.dark .chat-message .text {
+    color: #f8fafc;
+}
+
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    .game-container {
+        padding: 1rem;
+    }
+    .game-grid {
+        max-width: 270px; /* Smaller grid for very small screens */
+        grid-gap: 0.3rem;
+    }
+    .cell {
+        width: 90px;
+        height: 90px;
+        font-size: 3rem;
+    }
+    .status {
+        font-size: 1.25rem;
+    }
+    .action-button, .reset-button, .mode-button {
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+    }
+    .info-section {
+        padding: 1rem;
+    }
+    .public-game-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+    }
+    .public-game-item button {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}
