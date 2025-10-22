@@ -52,19 +52,35 @@
         </div>
 
         <!-- Player vs AI Setup Screen -->
-        <div id="pvcSetupSection" class="hidden setup-section">
-            <h2 class="text-xl font-semibold mb-4">Player vs. AI Setup</h2>
-            <div class="input-group">
-                <label for="pvcPlayerNameInput" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Your Name:</label>
-                <input type="text" id="pvcPlayerNameInput" placeholder="Enter Your Name" class="player-name-input">
-            </div>
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-6 mb-4">Choose AI Difficulty:</h3>
-            <button id="aiEasyButton" class="mode-button">Easy</button>
-            <button id="aiMediumButton" class="mode-button">Medium</button>
-            <button id="aiHardButton" class="mode-button">Hard</button>
-            <button id="backToModesFromPvcSetup" class="back-button mt-4">Back to Modes</button>
-        </div>
+        <div id="pvcSetupSection" class="setup-section hidden">
+            <h2 class="text-3xl font-semibold text-gray-800 dark:text-white mb-6">Player vs. Computer Setup</h2>
 
+            <div class="input-group">
+                <label for="pvcPlayerNameInput" class="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Your Name (Player X):</label>
+                <input type="text" id="pvcPlayerNameInput" value="You" placeholder="Enter your name" class="player-name-input mx-auto">
+            </div>
+
+            <div class="mb-6">
+                <p class="text-xl font-medium text-gray-800 dark:text-white mb-4">Select AI Difficulty (Player O):</p>
+                <div id="aiDifficultySelector" class="flex justify-center gap-4">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="ai_difficulty" value="easy" class="form-radio text-green-500 w-5 h-5">
+                        <span class="text-gray-700 dark:text-gray-300 font-semibold">Easy</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="ai_difficulty" value="medium" class="form-radio text-yellow-500 w-5 h-5" checked>
+                        <span class="text-gray-700 dark:text-gray-300 font-semibold">Medium</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="ai_difficulty" value="hard" class="form-radio text-red-500 w-5 h-5">
+                        <span class="text-gray-700 dark:text-gray-300 font-semibold">Hard</span>
+                    </label>
+                </div>
+            </div>
+
+            <button id="startPvCButton" class="action-button bg-red-600 hover:bg-red-700 w-full mb-3">Start Game</button>
+            <button id="backToModesFromPvC" class="back-button w-full">Back to Modes</button>
+        </div>
         <!-- Online Multiplayer Lobby Section -->
         <div id="onlineLobbySection" class="hidden lobby-section">
             <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Online Multiplayer</h2>

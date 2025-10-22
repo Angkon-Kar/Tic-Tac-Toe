@@ -3,7 +3,7 @@
 // Declare DOM element variables (will be populated in initDOMElements)
 let modeSelection, localPvPButton, onlinePvPButton, pvcModeButton;
 let localPvPSetupSection, playerXNameInput, playerONameInput, startLocalGameButton, backToModesFromLocalSetup;
-let pvcSetupSection, pvcPlayerNameInput, aiEasyButton, aiMediumButton, aiHardButton, backToModesFromPvcSetup;
+let pvcSetupSection, pvcPlayerNameInput, aiDifficultySelector, startPvCButton, backToModesFromPvC;
 let onlineLobbySection, userIdDisplay, currentUserNameDisplay, onlinePlayerNameInput, gameIdDisplay, copyGameIdButton, createGameButton, newGameNameInput, privateGameCheckbox, joinGameIdInput, joinGameButton, backToModesFromOnline, publicGamesList;
 let gameArea, gameStatus, cells, resetButton, startNewRoundButton, leaveGameButton, exitSpectatorModeButton, backToModesFromGame;
 let xScoreDisplay, oScoreDisplay, drawsDisplay;
@@ -31,10 +31,14 @@ export function initDOMElements() {
 
     pvcSetupSection = document.getElementById('pvcSetupSection');
     pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
-    aiEasyButton = document.getElementById('aiEasyButton');
-    aiMediumButton = document.getElementById('aiMediumButton');
-    aiHardButton = document.getElementById('aiHardButton');
-    backToModesFromPvcSetup = document.getElementById('backToModesFromPvcSetup');
+    aiDifficultySelector = document.getElementById('aiDifficultySelector'); 
+    startPvCButton = document.getElementById('startPvCButton');
+    backToModesFromPvC = document.getElementById('backToModesFromPvC');
+
+    pvcSetupSection = document.getElementById('pvcSetupSection');
+    pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
+    aiDifficultySelector = document.getElementById('aiDifficultySelector');
+    backToModesFromPvC = document.getElementById('backToModesFromPvC');
 
     onlineLobbySection = document.getElementById('onlineLobbySection');
     userIdDisplay = document.getElementById('userIdDisplay');
@@ -494,3 +498,33 @@ export function getCustomModal() { return customModal; }
 export function getModalMessage() { return modalMessage; }
 export function getModalCloseButton() { return modalCloseButton; }
 export function getThemeToggle() { return themeToggle; }
+
+
+/**
+ * Shows the Player vs. Computer setup section and hides all others.
+ */
+export function showPvCSetup() {
+    console.log("UI: Showing PvC Setup...");
+    hideAllSections(); 
+    if (pvcSetupSection) {
+        pvcSetupSection.classList.remove('hidden');
+    }
+}
+
+// Getters for new elements
+export function getPvCSetupSection() { return pvcSetupSection; }
+export function getPvCPlayerNameInput() { return pvcPlayerNameInput; }
+export function getStartPvCButton() { return startPvCButton; }
+export function getBackToModesFromPvC() { return backToModesFromPvC; }
+
+/**
+ * Gets the currently selected AI difficulty from the radio group.
+ * @returns {string} The selected difficulty ('easy', 'medium', or 'hard').
+ */
+export function getSelectedAiDifficulty() {
+    if (aiDifficultySelector) {
+        const selected = aiDifficultySelector.querySelector('input[name="ai_difficulty"]:checked');
+        return selected ? selected.value : 'medium'; // Default to medium
+    }
+    return 'medium';
+}

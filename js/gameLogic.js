@@ -32,7 +32,7 @@ const winningConditions = [
  * @param {object} names - Object containing player names {X: 'NameX', O: 'NameO'}.
  * @param {string} difficulty - AI difficulty ('easy', 'medium', 'hard') for PvC mode.
  */
-export function initializeGame(mode, isRematch = false, names = { X: 'Player X', O: 'Player O' }, difficulty = 'medium') {
+export function initializeGame(mode, isRematch = false, names = playerNames, difficulty = aiDifficulty) {
     console.log("GameLogic: Initializing game in mode:", mode, "Is Rematch:", isRematch, "Names:", names, "AI Difficulty:", difficulty);
     gameMode = mode;
     board = ['', '', '', '', '', '', '', '', '']; // Clear the board
@@ -50,9 +50,13 @@ export function initializeGame(mode, isRematch = false, names = { X: 'Player X',
     }
     UI.updateScoreDisplay(scores); // Update score display
 
-    if (gameMode === 'localPvP' || gameMode === 'PvC') {
-        UI.setGameStatus(`${playerNames.X}'s Turn`);
-    }
+    if (mode === 'PvC') {
+            playerNames = names; // Apply new names from setup
+            aiDifficulty = difficulty; // Set the AI difficulty for PvC
+            console.log(`GameLogic: Starting PvC game. Player X: ${playerNames.X}, AI (O) Difficulty: ${aiDifficulty}`);
+            UI.setGameStatus(playerNames.X + "'s turn (X)");
+        }
+    
     // For onlinePvP, status is managed by onlineGame.js listener
 
     // If in PvC mode and AI (O) should start (not default, but good to check)
@@ -238,3 +242,16 @@ export function getGameMode() {
 export function getPlayerNames() {
     return playerNames;
 }
+
+
+/**
+ * Gets the current AI difficulty.
+ * @returns {string} The current difficulty.
+ */
+export function getAiDifficulty() {
+    return aiDifficulty;
+}
+
+// NOTE: You will also need to ensure your existing makeAiMove function 
+// in gameLogic.js calls AI.findBestMove(board, currentPlayer, aiDifficulty) 
+// using the getAiDifficulty() or the local aiDifficulty variable.
