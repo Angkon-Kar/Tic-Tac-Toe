@@ -3,10 +3,10 @@
 import { db, appId, getCurrentUserId } from './auth.js';
 import * as UI from './ui.js';
 import * as GameLogic from './gameLogic.js';
-import { collection, doc, getDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, doc, getDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, orderBy, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 let currentGameId = null;
-let currentPlayerRole = null; // 'X', 'O', or 'spectator' for the current user in online game
+let currentPlayerRole = null; // 'X' or 'O' for the current user in online game, or 'spectator'
 let unsubscribeGameListener = null; // To store the Firestore unsubscribe function
 let unsubscribeChatListener = null; // To store the Firestore chat unsubscribe function
 let unsubscribePublicLobbyListener = null; // To store the public lobby listener
@@ -18,555 +18,415 @@ const CHAT_COLLECTION_PATH = (gameId) => `artifacts/${appId}/public/data/ticTacT
  * Creates a new multiplayer game in Firestore.
  * @param {string} gameName - Optional name for the game.
  * @param {boolean} isPrivate - True if the game should be private.
- * @param {string} playerName - The name of the player creating the game.
  */
-export async function createNewOnlineGame(gameName = '', isPrivate = false, playerName = 'Player X') {
+export async function createNewOnlineGame(gameName = '', isPrivate = false) {
     const userId = getCurrentUserId();
+    const userName = UI.getOnlinePlayerNameInput()?.value || `Player (${userId.substring(0, 4)})`;
+
     if (!userId) {
         UI.showModal("Please wait, authenticating user...");
         return;
     }
 
     try {
+        UI.showModal("Creating new game...");
         const gamesCollectionRef = collection(db, GAME_COLLECTION_PATH);
-        const newGameRef = await addDoc(gamesCollectionRef, {
+        const newGameData = {
+            gameName: gameName,
+            isPrivate: isPrivate,
+            playerXId: userId,
+            playerXName: userName,
+            playerOId: null, // Waiting for player O
+            playerOName: null,
             board: ['', '', '', '', '', '', '', '', ''],
             currentPlayer: 'X',
             gameActive: true,
-            playerXId: userId, // Creator is Player X
-            playerXName: playerName, // Store creator's name
-            playerOId: null, // Player O is initially null
-            playerOName: null, // Player O name is initially null
-            statusMessage: `Waiting for opponent... Share Game ID: `,
-            winner: null,
-            gameName: gameName, // Store game name
-            isPrivate: isPrivate,
-            scores: { xWins: 0, oWins: 0, draws: 0 }, // Initialize scores
-            winningCells: null,
-            createdAt: new Date()
-        });
+            scores: { xWins: 0, oWins: 0, draws: 0 },
+            rematchRequested: { X: false, O: false },
+            createdAt: Date.now()
+        };
 
+        const newGameRef = await addDoc(gamesCollectionRef, newGameData);
         currentGameId = newGameRef.id;
-        currentPlayerRole = 'X'; // Set current user's role
+        currentPlayerRole = 'X';
+        console.log("OnlineGame: Game created with ID:", currentGameId);
+
+        UI.hideModal();
         UI.setGameIdDisplay(currentGameId);
-        UI.showModal(`Game created! Share this ID with your friend: ${currentGameId}\n(You are Player X)`);
-        console.log("OnlineGame: New game created with ID:", currentGameId);
+        UI.showGameArea('onlinePvP', currentPlayerRole);
 
-        GameLogic.initializeGame('onlinePvP', false, { X: playerName, O: 'Player O' }); // Initialize game logic with names
-        UI.showGameArea('onlinePvP', currentPlayerRole); // Pass player role for UI logic
-        listenToOnlineGameUpdates(currentGameId); // Start listening for updates
-        listenToChatUpdates(currentGameId); // Start listening for chat messages
-
+        // Stop public lobby listener and start listening to the specific game
+        stopListeningToPublicLobby();
+        listenToGameUpdates(currentGameId);
+        listenToChatUpdates(currentGameId);
     } catch (error) {
-        console.error("OnlineGame: Error creating new game:", error);
-        UI.showModal("Failed to create online game. Please try again.");
+        console.error("OnlineGame: Error creating game:", error);
+        UI.showModal("Failed to create game. Please try again.");
     }
 }
 
 /**
- * Joins an existing multiplayer game as a player.
- * @param {string} gameIdToJoin - The ID of the game to join.
- * @param {string} playerName - The name of the player joining the game.
+ * Joins an existing multiplayer game as Player 'O'.
+ * @param {string} gameId - The ID of the game to join.
  */
-export async function joinOnlineGame(gameIdToJoin, playerName = 'Player O') {
+export async function joinOnlineGame(gameId) {
     const userId = getCurrentUserId();
+    const userName = UI.getOnlinePlayerNameInput()?.value || `Player (${userId.substring(0, 4)})`;
+    
     if (!userId) {
         UI.showModal("Please wait, authenticating user...");
         return;
     }
-    if (!gameIdToJoin) {
-        UI.showModal("Please enter a Game ID to join.");
-        return;
-    }
 
     try {
-        const gameDocRef = doc(db, GAME_COLLECTION_PATH, gameIdToJoin);
-        const gameDocSnap = await getDoc(gameDocRef);
+        UI.showModal(`Attempting to join game ${gameId}...`);
+        const gameRef = doc(db, GAME_COLLECTION_PATH, gameId);
 
-        if (!gameDocSnap.exists()) {
-            UI.showModal("Game not found. Please check the ID.");
-            return;
-        }
+        await runTransaction(db, async (transaction) => {
+            const gameDoc = await transaction.get(gameRef);
 
-        const gameData = gameDocSnap.data();
+            if (!gameDoc.exists()) {
+                throw "Game not found.";
+            }
 
-        // Check if the game already has two players and current user is not one of them
-        if (gameData.playerXId && gameData.playerOId && gameData.playerXId !== userId && gameData.playerOId !== userId) {
-            UI.showModal("This game is already full. You can spectate instead.");
-            return; // Suggest spectating
-        }
+            const data = gameDoc.data();
 
-        // If current user is already player X or O in this game, just re-join
-        if (gameData.playerXId === userId) {
-            currentPlayerRole = 'X';
-        } else if (gameData.playerOId === userId) {
-            currentPlayerRole = 'O';
-        } else {
-            // Assign current user as Player O if slot is available
-            await updateDoc(gameDocRef, {
+            if (data.playerOId) {
+                // If it's a private game and it's full, allow spectating
+                if (data.isPrivate) {
+                    throw "Game is full and private. Cannot join as a player.";
+                }
+                // If it's a public game and full, allow spectating
+                if (!data.isPrivate) {
+                    await spectateGame(gameId); // Redirect to spectate if full public
+                    throw "Game is full. Joining as Spectator.";
+                }
+            }
+
+            // Join as Player O
+            transaction.update(gameRef, {
                 playerOId: userId,
-                playerOName: playerName, // Store Player O's name
-                statusMessage: `${gameData.playerXName || 'Player X'}'s Turn` // Update status once both players are in
+                playerOName: userName,
             });
-            currentPlayerRole = 'O';
-        }
+        });
 
-        currentGameId = gameIdToJoin;
+        // Transaction successful
+        currentGameId = gameId;
+        currentPlayerRole = 'O';
+        console.log("OnlineGame: Joined game as O:", currentGameId);
+
+        UI.hideModal();
         UI.setGameIdDisplay(currentGameId);
-        UI.showModal(`Joined game: ${currentGameId}! You are Player ${currentPlayerRole}.`);
-        console.log("OnlineGame: Joined game:", currentGameId, "as Player", currentPlayerRole);
-
-        // Initialize game logic with updated names
-        GameLogic.initializeGame('onlinePvP', false, { X: gameData.playerXName || 'Player X', O: playerName });
-        UI.showGameArea('onlinePvP', currentPlayerRole); // Pass player role for UI logic
-        listenToOnlineGameUpdates(currentGameId); // Start listening for updates
-        listenToChatUpdates(currentGameId); // Start listening for chat messages
+        UI.showGameArea('onlinePvP', currentPlayerRole);
+        
+        stopListeningToPublicLobby();
+        listenToGameUpdates(currentGameId);
+        listenToChatUpdates(currentGameId);
 
     } catch (error) {
         console.error("OnlineGame: Error joining game:", error);
-        UI.showModal("Failed to join online game. Please try again.");
+        UI.showModal(`Failed to join game: ${error.message || error}`);
+        listenToPublicLobby(); // Re-enable lobby listener
     }
 }
 
 /**
- * Joins an existing multiplayer game as a spectator.
- * @param {string} gameIdToSpectate - The ID of the game to spectate.
+ * Spectates an existing multiplayer game.
+ * @param {string} gameId - The ID of the game to spectate.
  */
-export async function spectateOnlineGame(gameIdToSpectate) {
+export async function spectateGame(gameId) {
     const userId = getCurrentUserId();
     if (!userId) {
         UI.showModal("Please wait, authenticating user...");
         return;
     }
-    if (!gameIdToSpectate) {
-        UI.showModal("Invalid Game ID for spectating.");
-        return;
-    }
 
     try {
-        const gameDocRef = doc(db, GAME_COLLECTION_PATH, gameIdToSpectate);
-        const gameDocSnap = await getDoc(gameDocRef);
+        const gameRef = doc(db, GAME_COLLECTION_PATH, gameId);
+        const gameDoc = await getDoc(gameRef);
 
-        if (!gameDocSnap.exists()) {
-            UI.showModal("Game not found or ended.");
-            return;
+        if (!gameDoc.exists()) {
+            throw new Error("Game not found.");
         }
 
-        const gameData = gameDocSnap.data();
-        if (!gameData.playerXId || !gameData.playerOId) {
-            UI.showModal("This game is not yet full. You can join as a player if a slot is available.");
-            return;
-        }
+        currentGameId = gameId;
+        currentPlayerRole = 'spectator';
+        console.log("OnlineGame: Spectating game:", currentGameId);
 
-        currentGameId = gameIdToSpectate;
-        currentPlayerRole = 'spectator'; // Set current user's role as spectator
+        UI.hideModal();
         UI.setGameIdDisplay(currentGameId);
-        UI.showModal(`Spectating game: ${gameIdToSpectate}!`);
-        console.log("OnlineGame: Spectating game:", gameIdToSpectate);
-
-        // Initialize game logic with current player names from gameData
-        GameLogic.initializeGame('onlinePvP', false, { X: gameData.playerXName || 'Player X', O: gameData.playerOName || 'Player O' });
-        UI.showGameArea('onlinePvP', currentPlayerRole); // Pass spectator role for UI logic
-        listenToOnlineGameUpdates(currentGameId); // Start listening for updates
-        listenToChatUpdates(currentGameId); // Start listening for chat messages
+        UI.showGameArea('onlinePvP', currentPlayerRole);
+        
+        stopListeningToPublicLobby();
+        listenToGameUpdates(currentGameId);
+        listenToChatUpdates(currentGameId);
 
     } catch (error) {
         console.error("OnlineGame: Error spectating game:", error);
-        UI.showModal("Failed to spectate game. Please try again.");
+        UI.showModal(`Failed to spectate game: ${error.message}`);
     }
 }
 
 
 /**
- * Sets up a real-time listener for game updates from Firestore.
+ * Sends a move to the Firestore database.
+ * @param {Array<string>} newBoard - The new board state.
+ * @param {string} lastPlayer - The player who just made the move.
+ */
+export async function sendGameUpdate(newBoard, lastPlayer) {
+    if (!currentGameId || !currentPlayerRole || currentPlayerRole === 'spectator') return;
+
+    const gameRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
+    const nextPlayer = lastPlayer === 'X' ? 'O' : 'X';
+    const gameEndResult = GameLogic.checkGameEnd(newBoard);
+    let gameActive = true;
+    let newScores = GameLogic.getScores();
+
+    if (gameEndResult) {
+        gameActive = false;
+        
+        if (Array.isArray(gameEndResult)) { // Winner
+            newScores[lastPlayer.toLowerCase() + 'Wins']++;
+        } else { // Draw
+            newScores.draws++;
+        }
+        GameLogic.setScores(newScores); // Update local scores for consistency
+    }
+
+    try {
+        await updateDoc(gameRef, {
+            board: newBoard,
+            currentPlayer: nextPlayer,
+            gameActive: gameActive,
+            scores: newScores,
+            rematchRequested: { X: false, O: false } // Reset rematch on new move
+        });
+        console.log(`OnlineGame: Move sent. Player ${lastPlayer} played at index ${newBoard.findIndex((val, i) => newBoard[i] === lastPlayer && GameLogic.getBoard()[i] !== lastPlayer)}`);
+        // The listener will update the UI
+    } catch (error) {
+        console.error("OnlineGame: Error sending game update:", error);
+        UI.showModal("Failed to send move to server. Check connection.");
+    }
+}
+
+/**
+ * Sets up a real-time listener for game updates.
  * @param {string} gameId - The ID of the game to listen to.
  */
-function listenToOnlineGameUpdates(gameId) {
-    console.log("OnlineGame: Listening to online game updates for ID:", gameId);
-    const gameDocRef = doc(db, GAME_COLLECTION_PATH, gameId);
-
-    // Unsubscribe from previous listener if any
+function listenToGameUpdates(gameId) {
     if (unsubscribeGameListener) {
         unsubscribeGameListener();
         console.log("OnlineGame: Unsubscribed from previous game listener.");
     }
 
-    // Set up new listener
-    unsubscribeGameListener = onSnapshot(gameDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const gameData = docSnap.data();
-            console.log("OnlineGame: Game data updated:", gameData);
-
-            // Update GameLogic's state and player names
-            GameLogic.setGameActive(gameData.gameActive);
-            GameLogic.setScores(gameData.scores || { xWins: 0, oWins: 0, draws: 0 });
-            GameLogic.initializeGame('onlinePvP', true, { X: gameData.playerXName || 'Player X', O: gameData.playerOName || 'Player O' }); // Update names in GameLogic
-
-            // Update UI based on new game state
-            UI.updateBoardUI(gameData.board);
-            UI.setGameStatus(gameData.statusMessage);
-            UI.updateScoreDisplay(GameLogic.getScores());
-
-            // Enable/disable cells based on game state and current player's turn, and role
-            UI.setCellsInteractive(gameData.gameActive, gameData.board, gameData.currentPlayer, currentPlayerRole, 'onlinePvP');
-
-            // Handle winning line highlight
-            if (!gameData.gameActive && gameData.winner && gameData.winner !== 'Draw' && gameData.winningCells) {
-                UI.highlightWinningCells(gameData.winningCells);
-            }
-
-            // Handle "Start New Round" and "Leave Game" button visibility
-            const startNewRoundButton = UI.getStartNewRoundButton();
-            const leaveGameButton = UI.getLeaveGameButton();
-            const exitSpectatorModeButton = UI.getExitSpectatorModeButton();
-
-            if (currentPlayerRole === 'spectator') {
-                if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
-                if (leaveGameButton) leaveGameButton.classList.add('hidden');
-                if (exitSpectatorModeButton) exitSpectatorModeButton.classList.remove('hidden'); // Only show exit for spectator
-            } else { // Player X or O
-                if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
-
-                if (!gameData.gameActive && gameData.winner) { // Game has ended
-                    if (currentPlayerRole === 'X') {
-                        if (startNewRoundButton) startNewRoundButton.classList.remove('hidden'); // Show "Start New Round" for Player X
-                    }
-                    if (leaveGameButton) leaveGameButton.classList.remove('hidden'); // Show "Leave Game" for both players
-                } else { // Game is active or waiting
-                    if (startNewRoundButton) startNewRoundButton.classList.add('hidden'); // Hide "Start New Round"
-                    if (leaveGameButton) leaveGameButton.classList.remove('hidden'); // Always show "Leave Game"
-                }
-            }
-
+    const gameRef = doc(db, GAME_COLLECTION_PATH, gameId);
+    unsubscribeGameListener = onSnapshot(gameRef, (doc) => {
+        if (doc.exists()) {
+            const gameState = doc.data();
+            console.log("OnlineGame: Received game update.");
+            GameLogic.updateGameFromOnline(gameState, currentPlayerRole);
         } else {
-            console.log("OnlineGame: Game document no longer exists.");
-            UI.showModal("The online game you were in has ended or was deleted. Returning to lobby.");
-            GameLogic.setGameActive(false); // Ensure game is inactive
-            exitOnlineGame(); // Reset to lobby
+            console.warn("OnlineGame: Game document no longer exists!");
+            leaveOnlineGame(true); // Treat as game deleted/abandoned
+            UI.showModal("The game has been deleted or abandoned by the host.");
         }
     }, (error) => {
         console.error("OnlineGame: Error listening to game updates:", error);
-        UI.showModal("Disconnected from online game. Please try rejoining. Returning to lobby.");
-        GameLogic.setGameActive(false); // Ensure game is inactive
-        exitOnlineGame(); // Reset to lobby on error
     });
 }
 
 /**
- * Handles a move in an online game and updates Firestore.
- * @param {number} clickedCellIndex - The index of the cell where the move was made.
+ * Requests a rematch in an online game.
  */
-export async function handleOnlineMove(clickedCellIndex) {
-    const userId = getCurrentUserId();
-    if (!GameLogic.isGameActive() || !currentGameId || !currentPlayerRole || currentPlayerRole === 'spectator' || !userId) {
-        console.log("OnlineGame: Cannot make move - game not active, no game ID, or not a player role/user ID.");
-        UI.showModal("You cannot make moves in this game. You are a spectator or not a player.");
-        return;
-    }
+export async function requestRematch() {
+    if (!currentGameId || !currentPlayerRole || currentPlayerRole === 'spectator') return;
+
+    const gameRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
+    const update = {};
+    update[`rematchRequested.${currentPlayerRole}`] = true;
 
     try {
-        const gameDocRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
-        const gameDocSnap = await getDoc(gameDocRef);
+        await updateDoc(gameRef, update);
+        UI.getStartNewRoundButton().classList.add('hidden'); // Hide the button immediately
 
-        if (!gameDocSnap.exists()) {
-            UI.showModal("Game not found or ended.");
-            exitOnlineGame(); // Go back to lobby
-            return;
-        }
-
-        const gameData = gameDocSnap.data();
-
-        // Check if it's this player's turn and the cell is empty
-        if (gameData.board[clickedCellIndex] !== '' || gameData.currentPlayer !== currentPlayerRole) {
-            console.log("OnlineGame: Invalid online move: not your turn or cell filled.");
-            UI.showModal("It's not your turn or the cell is already taken.");
-            return;
-        }
-
-        // --- Update board and check for win/draw ---
-        const newBoard = [...gameData.board]; // Create a copy to modify
-        newBoard[clickedCellIndex] = currentPlayerRole;
-
-        let newStatusMessage = '';
-        let newGameActive = true;
-        let winner = null;
-        let winningCells = null;
-
-        const winningConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-            [0, 4, 8], [2, 4, 6]             // Diagonals
-        ];
-
-        let roundWon = false;
-        for (let i = 0; i < winningConditions.length; i++) {
-            const winCondition = winningConditions[i];
-            const a = newBoard[winCondition[0]];
-            const b = newBoard[winCondition[1]];
-            const c = newBoard[winCondition[2]];
-            if (a === '' || b === '' || c === '') continue;
-            if (a === b && b === c) {
-                roundWon = true;
-                winningCells = winCondition;
-                break;
+        // Check if both players requested rematch
+        const gameDoc = await getDoc(gameRef);
+        if (gameDoc.exists()) {
+            const data = gameDoc.data();
+            if (data.rematchRequested.X && data.rematchRequested.O) {
+                // Start a new round
+                await updateDoc(gameRef, {
+                    board: ['', '', '', '', '', '', '', '', ''],
+                    currentPlayer: 'X',
+                    gameActive: true,
+                    rematchRequested: { X: false, O: false }
+                });
+            } else {
+                UI.setGameStatus(`Rematch requested! Waiting for ${currentPlayerRole === 'X' ? data.playerOName : data.playerXName}...`);
             }
         }
-
-        const playerNamesInGame = {
-            X: gameData.playerXName || 'Player X',
-            O: gameData.playerOName || 'Player O'
-        };
-
-        if (roundWon) {
-            newStatusMessage = `${playerNamesInGame[currentPlayerRole]} Wins!`;
-            newGameActive = false;
-            winner = currentPlayerRole;
-            // Update scores for the winner
-            const currentScores = gameData.scores || { xWins: 0, oWins: 0, draws: 0 };
-            if (winner === 'X') {
-                currentScores.xWins++;
-            } else if (winner === 'O') {
-                currentScores.oWins++;
-            }
-            gameData.scores = currentScores; // Update scores in gameData
-        } else if (!newBoard.includes('')) {
-            newStatusMessage = 'It\'s a Draw!';
-            newGameActive = false;
-            winner = 'Draw';
-            // Update draws score
-            const currentScores = gameData.scores || { xWins: 0, oWins: 0, draws: 0 };
-            currentScores.draws++;
-            gameData.scores = currentScores; // Update scores in gameData
-        } else {
-            const nextPlayer = (currentPlayerRole === 'X' ? 'O' : 'X');
-            gameData.currentPlayer = nextPlayer;
-            newStatusMessage = `${playerNamesInGame[nextPlayer]}'s Turn`;
-        }
-
-        // Update Firestore document
-        await updateDoc(gameDocRef, {
-            board: newBoard,
-            currentPlayer: gameData.currentPlayer,
-            gameActive: newGameActive,
-            statusMessage: newStatusMessage,
-            winner: winner,
-            winningCells: winningCells, // Store winning cells for highlight
-            scores: gameData.scores // Store updated scores
-        });
-        console.log("OnlineGame: Move successfully updated in Firestore.");
-
     } catch (error) {
-        console.error("OnlineGame: Error updating online game state:", error);
-        UI.showModal("Failed to make move. Please try again.");
+        console.error("OnlineGame: Error requesting rematch:", error);
+        UI.showModal("Failed to request rematch.");
     }
 }
 
 /**
- * Handles starting a new round in an online game (only for Player X).
+ * Leaves the current online game and returns to the lobby.
+ * @param {boolean} isGameDeleted - True if the game document was deleted by someone else.
  */
-export async function startNewOnlineRound() {
+export async function leaveOnlineGame(isGameDeleted = false) {
+    if (!currentGameId) return;
+
     const userId = getCurrentUserId();
-    if (!currentGameId || currentPlayerRole !== 'X' || !userId) {
-        UI.showModal("Only Player X (game creator) can start a new round.");
-        return;
-    }
+    const gameRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
 
-    try {
-        const gameDocRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
-        const gameDocSnap = await getDoc(gameDocRef);
+    // Unsubscribe from listeners
+    if (unsubscribeGameListener) unsubscribeGameListener();
+    if (unsubscribeChatListener) unsubscribeChatListener();
 
-        if (!gameDocSnap.exists()) {
-            UI.showModal("Game not found or already ended.");
-            exitOnlineGame();
-            return;
-        }
+    // Cleanup: If a player leaves, clear their role. If X leaves a 1-player game, delete the game.
+    if (!isGameDeleted && currentPlayerRole !== 'spectator') {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const gameDoc = await transaction.get(gameRef);
+                if (!gameDoc.exists()) return;
 
-        // Preserve current scores, only reset board and active state
-        const gameData = gameDocSnap.data();
-        const currentScores = gameData.scores || { xWins: 0, oWins: 0, draws: 0 };
-
-        await updateDoc(gameDocRef, {
-            board: ['', '', '', '', '', '', '', '', ''],
-            currentPlayer: 'X',
-            gameActive: true,
-            statusMessage: `${gameData.playerXName || 'Player X'}'s Turn`, // Game is active, so X's turn
-            winner: null,
-            winningCells: null, // Clear winning cells
-            scores: currentScores // Preserve scores
-        });
-        console.log("OnlineGame: New online round started by Player X.");
-        UI.getStartNewRoundButton().classList.add('hidden'); // Hide after starting
-        UI.getLeaveGameButton().classList.remove('hidden'); // Ensure leave button is visible
-    } catch (error) {
-        console.error("OnlineGame: Error starting new online round:", error);
-        UI.showModal("Failed to start new round. Please try again.");
-    }
-}
-
-/**
- * Handles a player leaving an online game.
- */
-export async function leaveOnlineGame() {
-    const userId = getCurrentUserId();
-    if (!currentGameId || !currentPlayerRole || !userId) {
-        UI.showModal("Not in an active online game.");
-        exitOnlineGame();
-        return;
-    }
-
-    try {
-        const gameDocRef = doc(db, GAME_COLLECTION_PATH, currentGameId);
-        const gameDocSnap = await getDoc(gameDocRef);
-
-        if (!gameDocSnap.exists()) {
-            // If game doesn't exist, just exit locally
-            console.log("OnlineGame: Game not found on leave attempt, exiting locally.");
-            exitOnlineGame();
-            return;
-        }
-
-        const gameData = gameDocSnap.data();
-
-        if (currentPlayerRole === 'X') {
-            // Player X leaving: Game is essentially abandoned or waiting for new Player X
-            await updateDoc(gameDocRef, {
-                playerXId: null, // Player X leaves
-                playerXName: null,
-                playerOId: null, // Also clear Player O if exists, as game is no longer valid
-                playerOName: null,
-                gameActive: false, // Game becomes inactive
-                statusMessage: `Game creator left. Game ended.`,
-                winner: 'Abandoned'
+                const data = gameDoc.data();
+                
+                if (data.playerXId === userId) {
+                    if (data.playerOId) {
+                        // X leaves, O becomes X, game continues
+                        transaction.update(gameRef, {
+                            playerXId: data.playerOId,
+                            playerXName: data.playerOName,
+                            playerOId: null,
+                            playerOName: null,
+                            // X always starts, so new X (old O) is current player
+                            currentPlayer: 'X', 
+                            gameActive: false // Pause game until new O joins
+                        });
+                    } else {
+                        // X leaves, no O, delete the game
+                        transaction.delete(gameRef);
+                        console.log("OnlineGame: Game deleted by host (Player X).");
+                    }
+                } else if (data.playerOId === userId) {
+                    // O leaves, clear O's spot, game is paused
+                    transaction.update(gameRef, {
+                        playerOId: null,
+                        playerOName: null,
+                        gameActive: false // Pause game
+                    });
+                }
             });
-            UI.showModal("You have left the game as Player X. The game has ended.");
-        } else if (currentPlayerRole === 'O') {
-            // Player O leaving: Game can continue with a new Player O
-            await updateDoc(gameDocRef, {
-                playerOId: null, // Player O leaves
-                playerOName: null,
-                statusMessage: `${gameData.playerXName || 'Player X'} is waiting for opponent...`
-            });
-            UI.showModal("You have left the online game. Returning to lobby.");
+        } catch (error) {
+            console.error("OnlineGame: Error cleaning up game state:", error);
         }
-        console.log(`OnlineGame: Player ${currentPlayerRole} (${userId}) left game ${currentGameId}.`);
-        exitOnlineGame(); // Clean up and go to lobby
-    } catch (error) {
-        console.error("OnlineGame: Error leaving online game:", error);
-        UI.showModal("Failed to leave game. Please try again.");
     }
-}
-
-/**
- * Handles a spectator exiting the game view.
- */
-export function exitSpectatorMode() {
-    console.log("OnlineGame: Exiting spectator mode.");
-    exitOnlineGame(); // Use the common exit function
-}
-
-/**
- * Cleans up online game state and returns to the lobby.
- */
-export function exitOnlineGame() {
-    if (unsubscribeGameListener) {
-        unsubscribeGameListener();
-        unsubscribeGameListener = null;
-        console.log("OnlineGame: Unsubscribed from game listener.");
-    }
-    if (unsubscribeChatListener) {
-        unsubscribeChatListener();
-        unsubscribeChatListener = null;
-        console.log("OnlineGame: Unsubscribed from chat listener.");
-    }
-    // Do NOT unsubscribe public lobby listener here, it should persist
-    // if (unsubscribePublicLobbyListener) {
-    //     unsubscribePublicLobbyListener();
-    //     unsubscribePublicLobbyListener = null;
-    //     console.log("OnlineGame: Unsubscribed from public lobby listener.");
-    // }
+    
+    // Reset local state and navigate
     currentGameId = null;
     currentPlayerRole = null;
-    UI.setGameIdDisplay('None');
-    UI.clearChatMessages(); // Clear chat when leaving game
-    UI.showOnlineLobby(true); // Return to lobby (auth should be ready)
+    GameLogic.initializeGame('localPvP'); // Reset local game state (not scores)
+    UI.setGameIdDisplay('---');
+    UI.showOnlineLobby(true); // Return to lobby
+    listenToPublicLobby(); // Restart public lobby listener
 }
 
 /**
- * Sets up a real-time listener for public games in the lobby.
+ * Exits spectating mode and returns to the lobby.
+ */
+export function exitSpectatorMode() {
+    // Unsubscribe from listeners
+    if (unsubscribeGameListener) unsubscribeGameListener();
+    if (unsubscribeChatListener) unsubscribeChatListener();
+    
+    // Reset local state and navigate
+    currentGameId = null;
+    currentPlayerRole = null;
+    GameLogic.initializeGame('localPvP'); // Reset local game state (not scores)
+    UI.setGameIdDisplay('---');
+    UI.showOnlineLobby(true); // Return to lobby
+    listenToPublicLobby(); // Restart public lobby listener
+}
+
+
+// --- Lobby Management ---
+
+/**
+ * Starts listening to the public list of games.
  */
 export function listenToPublicLobby() {
-    console.log("OnlineGame: Listening to public lobby updates.");
-    const gamesCollectionRef = collection(db, GAME_COLLECTION_PATH);
-    // Query for public games that are active and waiting for Player O, or are full and active (for spectating)
-    const q = query(
-        gamesCollectionRef,
-        where("isPrivate", "==", false),
-        where("gameActive", "==", true), // Only show active games
-        orderBy("createdAt", "desc")
-    );
-
     if (unsubscribePublicLobbyListener) {
         unsubscribePublicLobbyListener();
         console.log("OnlineGame: Unsubscribed from previous public lobby listener.");
     }
+    
+    const gamesCollectionRef = collection(db, GAME_COLLECTION_PATH);
+    // Query for public games that are not full
+    const q = query(
+        gamesCollectionRef, 
+        where("isPrivate", "==", false),
+        orderBy("createdAt", "desc")
+    ); 
 
     unsubscribePublicLobbyListener = onSnapshot(q, (snapshot) => {
-        const publicGames = [];
+        const games = [];
         snapshot.forEach(doc => {
-            const data = doc.data();
-            // Only show games that are not created by the current user if they are already in a game
-            // or if the game is full and they want to spectate.
-            // If the current user is already player X or O in this game, don't show it in the lobby to join/spectate
-            if (data.playerXId !== getCurrentUserId() && data.playerOId !== getCurrentUserId()) {
-                publicGames.push({
-                    gameId: doc.id,
-                    gameName: data.gameName,
-                    playerXId: data.playerXId,
-                    playerXName: data.playerXName,
-                    playerOId: data.playerOId,
-                    playerOName: data.playerOName,
-                    createdAt: data.createdAt // Firestore Timestamp
-                });
+            const gameData = doc.data();
+            // Filter out games where the current user is already a player
+            if (gameData.playerXId !== getCurrentUserId() && gameData.playerOId !== getCurrentUserId()) {
+                 games.push({ gameId: doc.id, ...gameData });
             }
         });
-        // Sort by creation date, newest first (Firestore orderBy handles most, but client-side for robustness)
-        publicGames.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
-        UI.renderPublicGames(publicGames, joinOnlineGame, spectateOnlineGame); // Pass join and spectate functions
-        console.log("OnlineGame: Public games updated:", publicGames.length);
+        console.log("OnlineGame: New public games list received:", games.length);
+        UI.renderPublicGames(
+            games, 
+            (gameId) => joinOnlineGame(gameId), 
+            (gameId) => spectateGame(gameId)
+        );
     }, (error) => {
         console.error("OnlineGame: Error listening to public lobby:", error);
-        UI.publicGamesList.innerHTML = '<p class="text-red-500 dark:text-red-400">Failed to load public games.</p>';
     });
 }
 
 /**
- * Sends a chat message to Firestore.
- * @param {string} messageText - The text of the message.
+ * Stops listening to the public list of games.
  */
-export async function sendChatMessage(messageText) {
-    const userId = getCurrentUserId();
-    const currentUserName = UI.getOnlinePlayerNameInput().value.trim(); // Get name from online player input
-    const playerRole = getCurrentPlayerRole();
-
-    if (!currentGameId || !userId || messageText.trim() === '') {
-        console.log("OnlineGame: Cannot send message - no game ID, user ID, or empty message.");
-        UI.showModal("Cannot send empty message or not in a game."); // Provide user feedback
-        return;
+export function stopListeningToPublicLobby() {
+    if (unsubscribePublicLobbyListener) {
+        unsubscribePublicLobbyListener();
+        unsubscribePublicLobbyListener = null;
+        console.log("OnlineGame: Stopped public lobby listener.");
     }
+}
+
+// --- Chat Management ---
+
+/**
+ * Sends a chat message to the current game's chat collection.
+ * @param {string} message - The message text.
+ */
+export async function sendChatMessage(message) {
+    if (!currentGameId || !message.trim()) return;
+
+    const senderId = getCurrentUserId();
+    const senderName = UI.getCurrentUserNameDisplay().textContent || 'Guest';
+    const chatCollectionRef = collection(db, CHAT_COLLECTION_PATH(currentGameId));
 
     try {
-        const chatCollectionRef = collection(db, CHAT_COLLECTION_PATH(currentGameId));
         await addDoc(chatCollectionRef, {
-            senderId: userId,
-            sender: `${currentUserName || `Guest (${userId.substring(0, 4)})`} (${playerRole})`, // Display name and role
-            text: messageText,
-            timestamp: new Date()
+            sender: senderName,
+            senderId: senderId,
+            text: message,
+            timestamp: Date.now()
         });
-        UI.getChatInput().value = ''; // Clear input using getter
-        console.log("OnlineGame: Chat message sent.");
+        const chatInput = UI.getChatInput();
+        if (chatInput) chatInput.value = ''; // Clear input field
     } catch (error) {
         console.error("OnlineGame: Error sending chat message:", error);
-        UI.showModal("Failed to send message. Check console for details.");
+        UI.showModal("Failed to send message.");
     }
 }
 
@@ -592,6 +452,7 @@ function listenToChatUpdates(gameId) {
         });
         console.log("OnlineGame: New chat messages:", messages.length);
         // Re-render all messages to ensure correct order and self-styling
+        UI.clearChatMessages();
         messages.forEach(msg => UI.addChatMessage(msg, getCurrentUserId()));
     }, (error) => {
         console.error("OnlineGame: Error listening to chat updates:", error);

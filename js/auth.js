@@ -25,23 +25,16 @@ const initialAuthToken = null;
 // Firebase instances - declared globally but initialized within the function
 let app;
 export let db;
-export let auth;
-export let userId = null; // Current user's ID
-
-// Callback function to notify when auth is ready
-let authReadyCallback = null;
+let auth;
+let userId = null;
 
 /**
- * Initializes Firebase app and authenticates the user.
- * This function should be called once when the application starts.
- * It sets up an authentication state observer to get the user ID.
- * @param {Function} callback - A function to call once authentication is ready and userId is set.
+ * Initializes Firebase App and attempts to sign in anonymously.
+ * @param {function} authReadyCallback - Callback to execute when authentication is complete.
  */
-export async function initializeFirebaseAndAuth(callback) {
-    console.log("Auth: Attempting to initialize Firebase and authenticate...");
-    authReadyCallback = callback; // Store the callback
-
+export async function initializeFirebaseAndAuth(authReadyCallback) {
     try {
+        console.log("Auth: Attempting to initialize Firebase and authenticate...");
         app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);

@@ -16,7 +16,7 @@ const WINNING_CONDITIONS = [
 function checkWinner(board, player) {
     for (let i = 0; i < WINNING_CONDITIONS.length; i++) {
         const [a, b, c] = WINNING_CONDITIONS[i];
-        if (board[a] === player && board[b] === player && board[c] === player) {
+        if (board[a] === player && board[b] === player && board[a] === board[c]) {
             return true;
         }
     }
@@ -33,10 +33,10 @@ function getEmptyCells(board) {
 }
 
 /**
- * The Minimax algorithm to determine the best move for the AI.
- * @param {Array<string>} newBoard - The current board state.
- * @param {string} player - The current player for whom to calculate the score ('O' for AI, 'X' for human).
- * @returns {object} An object containing the best score and the index of the best move.
+ * The Minimax algorithm implementation.
+ * @param {Array<string>} newBoard - The board state to evaluate.
+ * @param {string} player - The current player making the move in the Minimax tree.
+ * @returns {object} An object containing the score and the move index.
  */
 function minimax(newBoard, player) {
     const humanPlayer = 'X';
@@ -44,44 +44,39 @@ function minimax(newBoard, player) {
 
     const emptyCells = getEmptyCells(newBoard);
 
-    // Base cases for recursion:
-    // If AI wins, return a high score
-    if (checkWinner(newBoard, aiPlayer)) {
-        return { score: 10 };
-    }
-    // If Human wins, return a low score
-    else if (checkWinner(newBoard, humanPlayer)) {
-        return { score: -10 };
-    }
-    // If it's a draw (no empty cells and no winner)
-    else if (emptyCells.length === 0) {
-        return { score: 0 };
+    // Terminal states (end of recursion)
+    if (checkWinner(newBoard, humanPlayer)) {
+        return { score: -10 }; // Human win is bad for AI
+    } else if (checkWinner(newBoard, aiPlayer)) {
+        return { score: 10 }; // AI win is good
+    } else if (emptyCells.length === 0) {
+        return { score: 0 }; // Draw
     }
 
-    // Array to store all possible moves and their scores
+    // Array to collect all moves from the empty spots
     const moves = [];
 
-    // Loop through available empty cells
+    // Recurse over available spots
     for (let i = 0; i < emptyCells.length; i++) {
         const move = {};
-        move.index = emptyCells[i]; // Store the index of the move
+        move.index = emptyCells[i];
 
-        // Make the move on a copy of the board
-        newBoard[move.index] = player;
+        // Make the move
+        newBoard[emptyCells[i]] = player;
 
-        // Recursively call minimax for the next player
+        // Collect the score resulting from the minimax call on the next player's board
         if (player === aiPlayer) {
             const result = minimax(newBoard, humanPlayer);
             move.score = result.score;
-        } else {
+        } else { // humanPlayer
             const result = minimax(newBoard, aiPlayer);
             move.score = result.score;
         }
 
-        // Undo the move (backtrack)
-        newBoard[move.index] = '';
+        // Reset the board to its state before the move
+        newBoard[emptyCells[i]] = '';
 
-        // Store the move and its score
+        // Push the move to the moves array
         moves.push(move);
     }
 
@@ -143,7 +138,7 @@ export function findBestMove(board, aiPlayer, difficulty) {
             }
         case 'hard':
         default:
-            // Hard AI: Always plays optimal using Minimax
+            // Hard AI: Always plays optimal (Minimax)
             const bestMove = minimax(Array.from(board), aiPlayer);
             return bestMove.index;
     }
