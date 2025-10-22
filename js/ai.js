@@ -109,7 +109,7 @@ function minimax(newBoard, player) {
 }
 
 /**
- * Finds the best move for the AI (Player 'O') based on difficulty.
+ * Finds the best move for the AI (Player 'O').
  * @param {Array<string>} board - The current board state.
  * @param {string} aiPlayer - The AI's symbol ('O').
  * @param {string} difficulty - The AI difficulty ('easy', 'medium', 'hard').

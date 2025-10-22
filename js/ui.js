@@ -1,6 +1,5 @@
 // js/ui.js
 
-// Declare DOM element variables (will be populated in initDOMElements)
 let modeSelection, localPvPButton, onlinePvPButton, pvcModeButton;
 let localPvPSetupSection, playerXNameInput, playerONameInput, startLocalGameButton, backToModesFromLocalSetup;
 let pvcSetupSection, pvcPlayerNameInput, aiDifficultySelector, startPvCButton, backToModesFromPvC;
@@ -13,9 +12,6 @@ let themeToggle;
 
 let hasPendingOnlineLobbyRequest = false;
 
-/**
- * Initializes all DOM element references. This should be called after DOMContentLoaded.
- */
 export function initDOMElements() {
     console.log("UI: Initializing DOM elements...");
     modeSelection = document.getElementById('modeSelection');
@@ -31,19 +27,14 @@ export function initDOMElements() {
 
     pvcSetupSection = document.getElementById('pvcSetupSection');
     pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
-    aiDifficultySelector = document.getElementById('aiDifficultySelector'); 
-    startPvCButton = document.getElementById('startPvCButton');
-    backToModesFromPvC = document.getElementById('backToModesFromPvC');
-
-    pvcSetupSection = document.getElementById('pvcSetupSection');
-    pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
     aiDifficultySelector = document.getElementById('aiDifficultySelector');
+    startPvCButton = document.getElementById('startPvCButton');
     backToModesFromPvC = document.getElementById('backToModesFromPvC');
 
     onlineLobbySection = document.getElementById('onlineLobbySection');
     userIdDisplay = document.getElementById('userIdDisplay');
     currentUserNameDisplay = document.getElementById('currentUserNameDisplay');
-    onlinePlayerNameInput = document.getElementById('onlinePlayerNameInput'); // Correctly assigned
+    onlinePlayerNameInput = document.getElementById('onlinePlayerNameInput');
     gameIdDisplay = document.getElementById('gameIdDisplay');
     copyGameIdButton = document.getElementById('copyGameIdButton');
     createGameButton = document.getElementById('createGameButton');
@@ -56,7 +47,7 @@ export function initDOMElements() {
 
     gameArea = document.getElementById('gameArea');
     gameStatus = document.getElementById('gameStatus');
-    cells = document.querySelectorAll('.cell'); // NodeList
+    cells = document.querySelectorAll('.cell');
     resetButton = document.getElementById('resetButton');
     startNewRoundButton = document.getElementById('startNewRoundButton');
     leaveGameButton = document.getElementById('leaveGameButton');
@@ -78,10 +69,25 @@ export function initDOMElements() {
 
     themeToggle = document.getElementById('themeToggle');
 
-    // Add console.error if any critical element is not found
+    // Defensive: ensure each .cell has data-index attribute matching its order
+    if (cells && cells.length) {
+        cells.forEach((cell, i) => {
+            if (!cell.hasAttribute('data-index')) cell.setAttribute('data-index', String(i));
+            cell.setAttribute('role', 'button');
+            cell.setAttribute('tabindex', '0');
+        });
+    }
+
+    // Default visibility: hide game controls and chat until needed
+    resetButton?.classList.add('hidden');
+    startNewRoundButton?.classList.add('hidden');
+    leaveGameButton?.classList.add('hidden');
+    exitSpectatorModeButton?.classList.add('hidden');
+    chatSection?.classList.add('hidden');
+
     if (!modeSelection) console.error("UI: modeSelection element not found!");
-    // ... (you can add similar checks for other critical elements if needed)
 }
+// ...existing code...
 
 
 /**
@@ -183,6 +189,7 @@ export function showLocalPvPSetup() {
 
 /**
  * Shows the Player vs AI setup section.
+ * NOTE: Renamed to showPvcSetup (lowercase 'v' and 'c') to fix the TypeError in main.js.
  */
 export function showPvcSetup() {
     console.log("UI: Showing Player vs AI setup.");
@@ -345,7 +352,8 @@ export function addChatMessage(messageData, currentUserId) {
     senderSpan.textContent = messageData.sender + ":";
 
     const textSpan = document.createElement('span');
-    textSpan.classList.add('text', 'text-gray-800', 'dark:text-gray-100'); // Tailwind classes handled in CSS
+    // NOTE: Removed specific Tailwind text colors as they should be handled by the chat.css/theme
+    textSpan.classList.add('text'); 
     textSpan.textContent = messageData.text;
 
     messageElement.appendChild(senderSpan);
@@ -459,12 +467,25 @@ export function getPlayerONameInput() { return playerONameInput; }
 export function getStartLocalGameButton() { return startLocalGameButton; }
 export function getBackToModesFromLocalSetup() { return backToModesFromLocalSetup; }
 
+// PvC Getters (Corrected names/variables)
 export function getPvcSetupSection() { return pvcSetupSection; }
 export function getPvcPlayerNameInput() { return pvcPlayerNameInput; }
-export function getAiEasyButton() { return aiEasyButton; }
-export function getAiMediumButton() { return aiMediumButton; }
-export function getAiHardButton() { return aiHardButton; }
-export function getBackToModesFromPvcSetup() { return backToModesFromPvcSetup; }
+export function getAiDifficultySelector() { return aiDifficultySelector; } // New getter for the selector
+export function getStartPvCButton() { return startPvCButton; }
+export function getBackToModesFromPvC() { return backToModesFromPvC; }
+
+/**
+ * Gets the currently selected AI difficulty from the radio group.
+ * @returns {string} The selected difficulty ('easy', 'medium', or 'hard').
+ */
+export function getSelectedAiDifficulty() {
+    if (aiDifficultySelector) {
+        const selected = aiDifficultySelector.querySelector('input[name="ai_difficulty"]:checked');
+        return selected ? selected.value : 'medium'; // Default to medium
+    }
+    return 'medium';
+}
+// END PvC Getters
 
 export function getOnlineLobbySection() { return onlineLobbySection; }
 export function getUserIdDisplay() { return userIdDisplay; }
@@ -498,33 +519,3 @@ export function getCustomModal() { return customModal; }
 export function getModalMessage() { return modalMessage; }
 export function getModalCloseButton() { return modalCloseButton; }
 export function getThemeToggle() { return themeToggle; }
-
-
-/**
- * Shows the Player vs. Computer setup section and hides all others.
- */
-export function showPvCSetup() {
-    console.log("UI: Showing PvC Setup...");
-    hideAllSections(); 
-    if (pvcSetupSection) {
-        pvcSetupSection.classList.remove('hidden');
-    }
-}
-
-// Getters for new elements
-export function getPvCSetupSection() { return pvcSetupSection; }
-export function getPvCPlayerNameInput() { return pvcPlayerNameInput; }
-export function getStartPvCButton() { return startPvCButton; }
-export function getBackToModesFromPvC() { return backToModesFromPvC; }
-
-/**
- * Gets the currently selected AI difficulty from the radio group.
- * @returns {string} The selected difficulty ('easy', 'medium', or 'hard').
- */
-export function getSelectedAiDifficulty() {
-    if (aiDifficultySelector) {
-        const selected = aiDifficultySelector.querySelector('input[name="ai_difficulty"]:checked');
-        return selected ? selected.value : 'medium'; // Default to medium
-    }
-    return 'medium';
-}
