@@ -1,4 +1,5 @@
 // js/ai.js
+
 // Winning conditions (same as in gameLogic, but duplicated for modularity)
 const WINNING_CONDITIONS = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
@@ -108,12 +109,13 @@ function minimax(newBoard, player) {
 }
 
 /**
- * Finds the best move for the AI (Player 'O').
+ * Finds the best move for the AI (Player 'O') based on difficulty.
  * @param {Array<string>} board - The current board state.
  * @param {string} aiPlayer - The AI's symbol ('O').
+ * @param {string} difficulty - The AI difficulty ('easy', 'medium', 'hard').
  * @returns {number} The index of the best move, or -1 if no move is possible.
  */
-export function findBestMove(board, aiPlayer) {
+export function findBestMove(board, aiPlayer, difficulty) {
     const emptyCells = getEmptyCells(board);
     if (emptyCells.length === 0) {
         return -1; // No moves possible
@@ -127,6 +129,22 @@ export function findBestMove(board, aiPlayer) {
         return Math.random() < 0.5 ? center : corners[Math.floor(Math.random() * corners.length)];
     }
 
-    const bestMove = minimax(Array.from(board), aiPlayer); // Pass a copy of the board
-    return bestMove.index;
+    switch (difficulty) {
+        case 'easy':
+            // Easy AI: Random move
+            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        case 'medium':
+            // Medium AI: 70% chance to play optimal, 30% chance to play random
+            if (Math.random() < 0.7) {
+                const bestMove = minimax(Array.from(board), aiPlayer);
+                return bestMove.index;
+            } else {
+                return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+        case 'hard':
+        default:
+            // Hard AI: Always plays optimal using Minimax
+            const bestMove = minimax(Array.from(board), aiPlayer);
+            return bestMove.index;
+    }
 }

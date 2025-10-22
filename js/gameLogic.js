@@ -8,6 +8,8 @@ let board = ['', '', '', '', '', '', '', '', '']; // Represents the 9 cells
 let currentPlayer = 'X'; // 'X' or 'O'
 let gameActive = true; // True if the game is ongoing
 let gameMode = null; // 'localPvP', 'onlinePvP', 'PvC'
+let playerNames = { X: 'Player X', O: 'Player O' }; // Store player names
+let aiDifficulty = 'medium'; // Default AI difficulty
 
 // Score tracking
 let scores = {
@@ -27,16 +29,21 @@ const winningConditions = [
  * Initializes a new game for the selected mode.
  * @param {string} mode - The game mode ('localPvP', 'onlinePvP', 'PvC').
  * @param {boolean} isRematch - True if this is a rematch (don't reset scores).
+ * @param {object} names - Object containing player names {X: 'NameX', O: 'NameO'}.
+ * @param {string} difficulty - AI difficulty ('easy', 'medium', 'hard') for PvC mode.
  */
-export function initializeGame(mode, isRematch = false) {
-    console.log("GameLogic: Initializing game in mode:", mode, "Is Rematch:", isRematch);
+export function initializeGame(mode, isRematch = false, names = { X: 'Player X', O: 'Player O' }, difficulty = 'medium') {
+    console.log("GameLogic: Initializing game in mode:", mode, "Is Rematch:", isRematch, "Names:", names, "AI Difficulty:", difficulty);
     gameMode = mode;
     board = ['', '', '', '', '', '', '', '', '']; // Clear the board
     currentPlayer = 'X'; // Start with Player X
     gameActive = true; // Set game to active
+    playerNames = names; // Set player names
+    aiDifficulty = difficulty; // Set AI difficulty
 
     UI.updateBoardUI(board); // Update UI to clear board
-    UI.setCellsInteractive(true, board, null, null, gameMode); // Enable all empty cells
+    // For onlinePvP, interactivity is handled by onlineGame.js to account for spectator mode
+    UI.setCellsInteractive(true, board, null, null, gameMode);
 
     if (!isRematch) {
         resetScores(); // Only reset scores if it's not a rematch
@@ -44,7 +51,7 @@ export function initializeGame(mode, isRematch = false) {
     UI.updateScoreDisplay(scores); // Update score display
 
     if (gameMode === 'localPvP' || gameMode === 'PvC') {
-        UI.setGameStatus(`Player X's Turn`);
+        UI.setGameStatus(`${playerNames.X}'s Turn`);
     }
     // For onlinePvP, status is managed by onlineGame.js listener
 
@@ -100,7 +107,7 @@ function checkForGameEndLocal() {
     }
 
     if (roundWon) {
-        UI.setGameStatus(`Player ${currentPlayer} Wins!`);
+        UI.setGameStatus(`${playerNames[currentPlayer]} Wins!`);
         UI.highlightWinningCells(winningCells); // Highlight winning line
         gameActive = false;
         if (currentPlayer === 'X') {
@@ -133,7 +140,7 @@ function checkForGameEndLocal() {
  */
 function switchPlayerLocal() {
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-    UI.setGameStatus(`Player ${currentPlayer}'s Turn`);
+    UI.setGameStatus(`${playerNames[currentPlayer]}'s Turn`);
     console.log("GameLogic: Switched player to:", currentPlayer);
 
     if (gameMode === 'PvC' && currentPlayer === 'O' && gameActive) {
@@ -149,7 +156,7 @@ function switchPlayerLocal() {
  * Triggers the AI to make a move.
  */
 function makeAIMove() {
-    const aiMoveIndex = AI.findBestMove(board, 'O'); // AI plays as 'O'
+    const aiMoveIndex = AI.findBestMove(board, 'O', aiDifficulty); // Pass difficulty to AI
     if (aiMoveIndex !== -1) {
         board[aiMoveIndex] = currentPlayer;
         UI.updateBoardUI(board);
@@ -222,4 +229,12 @@ export function setScores(newScores) {
  */
 export function getGameMode() {
     return gameMode;
+}
+
+/**
+ * Gets the current player names.
+ * @returns {object} The player names object {X: 'NameX', O: 'NameO'}.
+ */
+export function getPlayerNames() {
+    return playerNames;
 }

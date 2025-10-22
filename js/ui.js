@@ -2,8 +2,10 @@
 
 // Declare DOM element variables (will be populated in initDOMElements)
 let modeSelection, localPvPButton, onlinePvPButton, pvcModeButton;
-let onlineLobbySection, userIdDisplay, gameIdDisplay, copyGameIdButton, createGameButton, newGameNameInput, privateGameCheckbox, joinGameIdInput, joinGameButton, backToModesFromOnline, publicGamesList;
-let gameArea, gameStatus, cells, resetButton, rematchButton, backToModesFromGame;
+let localPvPSetupSection, playerXNameInput, playerONameInput, startLocalGameButton, backToModesFromLocalSetup;
+let pvcSetupSection, pvcPlayerNameInput, aiEasyButton, aiMediumButton, aiHardButton, backToModesFromPvcSetup;
+let onlineLobbySection, userIdDisplay, currentUserNameDisplay, onlinePlayerNameInput, gameIdDisplay, copyGameIdButton, createGameButton, newGameNameInput, privateGameCheckbox, joinGameIdInput, joinGameButton, backToModesFromOnline, publicGamesList;
+let gameArea, gameStatus, cells, resetButton, startNewRoundButton, leaveGameButton, exitSpectatorModeButton, backToModesFromGame;
 let xScoreDisplay, oScoreDisplay, drawsDisplay;
 let chatSection, chatMessagesContainer, chatInput, sendChatButton;
 let customModal, modalMessage, modalCloseButton;
@@ -21,8 +23,23 @@ export function initDOMElements() {
     onlinePvPButton = document.getElementById('onlinePvPButton');
     pvcModeButton = document.getElementById('pvcModeButton');
 
+    localPvPSetupSection = document.getElementById('localPvPSetupSection');
+    playerXNameInput = document.getElementById('playerXNameInput');
+    playerONameInput = document.getElementById('playerONameInput');
+    startLocalGameButton = document.getElementById('startLocalGameButton');
+    backToModesFromLocalSetup = document.getElementById('backToModesFromLocalSetup');
+
+    pvcSetupSection = document.getElementById('pvcSetupSection');
+    pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
+    aiEasyButton = document.getElementById('aiEasyButton');
+    aiMediumButton = document.getElementById('aiMediumButton');
+    aiHardButton = document.getElementById('aiHardButton');
+    backToModesFromPvcSetup = document.getElementById('backToModesFromPvcSetup');
+
     onlineLobbySection = document.getElementById('onlineLobbySection');
     userIdDisplay = document.getElementById('userIdDisplay');
+    currentUserNameDisplay = document.getElementById('currentUserNameDisplay');
+    onlinePlayerNameInput = document.getElementById('onlinePlayerNameInput'); // Correctly assigned
     gameIdDisplay = document.getElementById('gameIdDisplay');
     copyGameIdButton = document.getElementById('copyGameIdButton');
     createGameButton = document.getElementById('createGameButton');
@@ -37,7 +54,9 @@ export function initDOMElements() {
     gameStatus = document.getElementById('gameStatus');
     cells = document.querySelectorAll('.cell'); // NodeList
     resetButton = document.getElementById('resetButton');
-    rematchButton = document.getElementById('rematchButton');
+    startNewRoundButton = document.getElementById('startNewRoundButton');
+    leaveGameButton = document.getElementById('leaveGameButton');
+    exitSpectatorModeButton = document.getElementById('exitSpectatorModeButton');
     backToModesFromGame = document.getElementById('backToModesFromGame');
 
     xScoreDisplay = document.getElementById('xScore');
@@ -57,7 +76,6 @@ export function initDOMElements() {
 
     // Add console.error if any critical element is not found
     if (!modeSelection) console.error("UI: modeSelection element not found!");
-    if (!localPvPButton) console.error("UI: localPvPButton element not found!");
     // ... (you can add similar checks for other critical elements if needed)
 }
 
@@ -95,6 +113,14 @@ export function setUserIdDisplay(id) {
 }
 
 /**
+ * Sets the current user's name display in the UI.
+ * @param {string} name - The user's name.
+ */
+export function setCurrentUserNameDisplay(name) {
+    if (currentUserNameDisplay) currentUserNameDisplay.textContent = name;
+}
+
+/**
  * Sets the current game ID display in the UI.
  * @param {string} id - The game ID.
  */
@@ -103,16 +129,60 @@ export function setGameIdDisplay(id) {
 }
 
 /**
+ * Hides all main sections and shows only the specified one.
+ * @param {HTMLElement} sectionToShow - The HTML element of the section to display.
+ */
+function showOnlySection(sectionToShow) {
+    const sections = [
+        modeSelection,
+        localPvPSetupSection,
+        pvcSetupSection,
+        onlineLobbySection,
+        gameArea
+    ];
+    sections.forEach(section => {
+        if (section) {
+            if (section === sectionToShow) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+    });
+
+    // Always hide chat when switching main sections, it's shown specifically for online games
+    if (chatSection) chatSection.classList.add('hidden');
+    // Always hide game-specific buttons when switching main sections
+    if (resetButton) resetButton.classList.add('hidden');
+    if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
+    if (leaveGameButton) leaveGameButton.classList.add('hidden');
+    if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
+}
+
+
+/**
  * Shows the mode selection screen and hides other sections.
  */
 export function showModeSelection() {
     console.log("UI: Showing mode selection.");
-    if (modeSelection) modeSelection.classList.remove('hidden');
-    if (onlineLobbySection) onlineLobbySection.classList.add('hidden');
-    if (gameArea) gameArea.classList.add('hidden');
-    if (chatSection) chatSection.classList.add('hidden'); // Hide chat when not in game
-    if (rematchButton) rematchButton.classList.add('hidden'); // Hide rematch button
+    showOnlySection(modeSelection);
     hasPendingOnlineLobbyRequest = false; // Reset this flag when leaving online flow
+}
+
+/**
+ * Shows the Local PvP setup section.
+ */
+export function showLocalPvPSetup() {
+    console.log("UI: Showing Local PvP setup.");
+    showOnlySection(localPvPSetupSection);
+}
+
+/**
+ * Shows the Player vs AI setup section.
+ */
+export function showPvcSetup() {
+    console.log("UI: Showing Player vs AI setup.");
+    showOnlySection(pvcSetupSection);
 }
 
 /**
@@ -126,29 +196,37 @@ export function showOnlineLobby(authReady) {
         showModal("Please wait, authenticating for online mode...");
         return;
     }
-    if (modeSelection) modeSelection.classList.add('hidden');
-    if (onlineLobbySection) onlineLobbySection.classList.remove('hidden');
-    if (gameArea) gameArea.classList.add('hidden');
-    if (chatSection) chatSection.classList.add('hidden'); // Hide chat when not in game
-    if (rematchButton) rematchButton.classList.add('hidden'); // Hide rematch button
+    showOnlySection(onlineLobbySection);
     if (publicGamesList) publicGamesList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading public games...</p>'; // Reset lobby list
 }
 
 /**
  * Shows the game area and hides other sections.
  * @param {string} mode - The current game mode.
+ * @param {string} currentOnlineRole - The role of the current user in online mode ('X', 'O', or 'spectator').
  */
-export function showGameArea(mode) {
-    console.log("UI: Showing game area for mode:", mode);
-    if (modeSelection) modeSelection.classList.add('hidden');
-    if (onlineLobbySection) onlineLobbySection.classList.add('hidden');
-    if (gameArea) gameArea.classList.remove('hidden');
-    if (resetButton) resetButton.style.display = 'block'; // Always show reset button in game
-    if (rematchButton) rematchButton.classList.add('hidden'); // Hide rematch initially
-    if (mode === 'onlinePvP') {
+export function showGameArea(mode, currentOnlineRole = null) {
+    console.log("UI: Showing game area for mode:", mode, "Role:", currentOnlineRole);
+    showOnlySection(gameArea);
+
+    // Reset button visibility for all modes
+    if (resetButton) resetButton.classList.add('hidden');
+    if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
+    if (leaveGameButton) leaveGameButton.classList.add('hidden');
+    if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
+
+    if (mode === 'localPvP' || mode === 'PvC') {
+        if (resetButton) resetButton.classList.remove('hidden'); // Show reset for local/PvC
+        if (chatSection) chatSection.classList.add('hidden'); // Hide chat for local/PvC
+    } else if (mode === 'onlinePvP') {
         if (chatSection) chatSection.classList.remove('hidden'); // Show chat for online mode
-    } else {
-        if (chatSection) chatSection.classList.add('hidden'); // Hide chat for other modes
+        if (currentOnlineRole === 'spectator') {
+            if (exitSpectatorModeButton) exitSpectatorModeButton.classList.remove('hidden');
+            // Game controls are disabled for spectators, handled by setCellsInteractive
+        } else { // Player X or O
+            if (leaveGameButton) leaveGameButton.classList.remove('hidden'); // Always show leave for players
+            // Start New Round button visibility handled by onlineGame updates
+        }
     }
 }
 
@@ -208,21 +286,23 @@ export function setCellsInteractive(enable, boardState, currentTurnPlayer = null
         return;
     }
     cells.forEach((cell, index) => {
+        // Cells are only interactive if enabled AND empty AND (it's not online OR it's your turn in online)
+        const isOnlinePlayerTurn = (mode === 'onlinePvP' && localPlayerRole !== 'spectator' && currentTurnPlayer === localPlayerRole);
+        const isLocalOrPvC = (mode === 'localPvP' || mode === 'PvC');
+        const isSpectator = (mode === 'onlinePvP' && localPlayerRole === 'spectator');
+
         if (enable && boardState[index] === '') {
-            if (mode === 'onlinePvP') {
-                // For online, enable only if it's your turn AND cell is empty
-                if (currentTurnPlayer === localPlayerRole) {
-                    cell.style.pointerEvents = 'auto';
-                    cell.classList.remove('cursor-not-allowed');
-                } else {
-                    cell.style.pointerEvents = 'none';
-                    cell.classList.add('cursor-not-allowed');
-                }
-            } else { // For localPvP and PvC, enable if empty
+            if (isLocalOrPvC || isOnlinePlayerTurn) {
                 cell.style.pointerEvents = 'auto';
                 cell.classList.remove('cursor-not-allowed');
+            } else if (isSpectator) {
+                cell.style.pointerEvents = 'none'; // Spectators cannot click
+                cell.classList.add('cursor-not-allowed');
+            } else { // Online, but not your turn
+                cell.style.pointerEvents = 'none';
+                cell.classList.add('cursor-not-allowed');
             }
-        } else {
+        } else { // Cell is filled or game not active
             cell.style.pointerEvents = 'none';
             cell.classList.add('cursor-not-allowed');
         }
@@ -253,9 +333,7 @@ export function addChatMessage(messageData, currentUserId) {
     messageElement.classList.add('chat-message', 'p-2', 'rounded-lg', 'mb-2');
 
     if (messageData.senderId === currentUserId) {
-        messageElement.classList.add('self', 'bg-blue-200', 'dark:bg-blue-600', 'ml-auto');
-    } else {
-        messageElement.classList.add('bg-gray-200', 'dark:bg-gray-700', 'mr-auto');
+        messageElement.classList.add('self'); // Tailwind classes handled in CSS
     }
 
     const senderSpan = document.createElement('span');
@@ -263,7 +341,7 @@ export function addChatMessage(messageData, currentUserId) {
     senderSpan.textContent = messageData.sender + ":";
 
     const textSpan = document.createElement('span');
-    textSpan.classList.add('text', 'text-gray-800', 'dark:text-gray-100');
+    textSpan.classList.add('text', 'text-gray-800', 'dark:text-gray-100'); // Tailwind classes handled in CSS
     textSpan.textContent = messageData.text;
 
     messageElement.appendChild(senderSpan);
@@ -285,8 +363,9 @@ export function clearChatMessages() {
  * Renders the list of public games in the lobby.
  * @param {Array<object>} games - Array of game objects.
  * @param {Function} onJoinGame - Callback function when a join button is clicked.
+ * @param {Function} onSpectateGame - Callback function when a spectate button is clicked.
  */
-export function renderPublicGames(games, onJoinGame) {
+export function renderPublicGames(games, onJoinGame, onSpectateGame) {
     if (!publicGamesList) {
         console.error("UI: Public games list container not found, cannot render games.");
         return;
@@ -304,18 +383,32 @@ export function renderPublicGames(games, onJoinGame) {
 
         const gameInfo = document.createElement('span');
         const gameName = game.gameName && game.gameName !== '' ? `"${game.gameName}"` : `Game ${game.gameId.substring(0, 6)}`;
-        const playerXStatus = game.playerXId ? 'X' : '';
-        const playerOStatus = game.playerOId ? 'O' : '';
-        const players = [playerXStatus, playerOStatus].filter(Boolean).join(' vs ');
-        gameInfo.textContent = `${gameName} (${players || 'Waiting'})`;
+        const playerXName = game.playerXName || `Player X (${game.playerXId.substring(0,4)})`;
+        const playerOName = game.playerOId ? (game.playerOName || `Player O (${game.playerOId.substring(0,4)})`) : 'Waiting...';
+        const playersStatus = game.playerOId ? `${playerXName} vs ${playerOName}` : `${playerXName} (Waiting)`;
 
-        const joinButton = document.createElement('button');
-        joinButton.classList.add('px-3', 'py-1', 'bg-blue-500', 'text-white', 'rounded-md', 'hover:bg-blue-600', 'transition-colors', 'duration-200');
-        joinButton.textContent = 'Join';
-        joinButton.onclick = () => onJoinGame(game.gameId);
+        gameInfo.textContent = `${gameName} - ${playersStatus}`;
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.classList.add('flex', 'gap-2', 'mt-2', 'sm:mt-0');
+
+        if (!game.playerOId) { // Game is waiting for a second player
+            const joinButton = document.createElement('button');
+            joinButton.classList.add('px-3', 'py-1', 'bg-blue-600', 'text-white', 'rounded-md', 'hover:bg-blue-700', 'transition-colors', 'duration-200');
+            joinButton.textContent = 'Join';
+            joinButton.onclick = () => onJoinGame(game.gameId);
+            buttonContainer.appendChild(joinButton);
+        } else { // Game is full, offer spectate
+            const spectateButton = document.createElement('button');
+            spectateButton.classList.add('px-3', 'py-1', 'bg-gray-600', 'text-white', 'rounded-md', 'hover:bg-gray-700', 'transition-colors', 'duration-200');
+            spectateButton.textContent = 'Spectate';
+            spectateButton.onclick = () => onSpectateGame(game.gameId);
+            buttonContainer.appendChild(spectateButton);
+        }
+
 
         gameItem.appendChild(gameInfo);
-        gameItem.appendChild(joinButton);
+        gameItem.appendChild(buttonContainer);
         publicGamesList.appendChild(gameItem);
     });
 }
@@ -355,8 +448,24 @@ export function getModeSelection() { return modeSelection; }
 export function getLocalPvPButton() { return localPvPButton; }
 export function getOnlinePvPButton() { return onlinePvPButton; }
 export function getPvcModeButton() { return pvcModeButton; }
+
+export function getLocalPvPSetupSection() { return localPvPSetupSection; }
+export function getPlayerXNameInput() { return playerXNameInput; }
+export function getPlayerONameInput() { return playerONameInput; }
+export function getStartLocalGameButton() { return startLocalGameButton; }
+export function getBackToModesFromLocalSetup() { return backToModesFromLocalSetup; }
+
+export function getPvcSetupSection() { return pvcSetupSection; }
+export function getPvcPlayerNameInput() { return pvcPlayerNameInput; }
+export function getAiEasyButton() { return aiEasyButton; }
+export function getAiMediumButton() { return aiMediumButton; }
+export function getAiHardButton() { return aiHardButton; }
+export function getBackToModesFromPvcSetup() { return backToModesFromPvcSetup; }
+
 export function getOnlineLobbySection() { return onlineLobbySection; }
 export function getUserIdDisplay() { return userIdDisplay; }
+export function getCurrentUserNameDisplay() { return currentUserNameDisplay; }
+export function getOnlinePlayerNameInput() { return onlinePlayerNameInput; }
 export function getGameIdDisplay() { return gameIdDisplay; }
 export function getCopyGameIdButton() { return copyGameIdButton; }
 export function getCreateGameButton() { return createGameButton; }
@@ -370,7 +479,9 @@ export function getGameArea() { return gameArea; }
 export function getGameStatus() { return gameStatus; }
 export function getCells() { return cells; }
 export function getResetButton() { return resetButton; }
-export function getRematchButton() { return rematchButton; }
+export function getStartNewRoundButton() { return startNewRoundButton; }
+export function getLeaveGameButton() { return leaveGameButton; }
+export function getExitSpectatorModeButton() { return exitSpectatorModeButton; }
 export function getBackToModesFromGame() { return backToModesFromGame; }
 export function getXScoreDisplay() { return xScoreDisplay; }
 export function getOScoreDisplay() { return oScoreDisplay; }

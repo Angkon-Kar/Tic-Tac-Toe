@@ -1,0 +1,132 @@
+/* Mode Selection & Setup Sections */
+.mode-selection, .setup-section, .lobby-section {
+    width: 100%;
+    max-width: 400px; /* Consistent width for these sections */
+    margin: 0 auto;
+}
+
+.mode-selection h2, .setup-section h2, .lobby-section h2, .public-lobby h3 {
+    color: #37474f; /* Dark text for headings */
+}
+body.dark .mode-selection h2, body.dark .setup-section h2, body.dark .lobby-section h2, body.dark .public-lobby h3 {
+    color: #e0e0e0; /* Light text for headings in dark mode */
+}
+
+/* Info Section (User ID, Game ID, Player Name) */
+.info-section {
+    background-color: #e8f5e9; /* Light green for info */
+    border: 1px solid #c8e6c9;
+    color: #1b5e20; /* Dark green text for info */
+}
+body.dark .info-section {
+    background-color: #37474f; /* Dark blue-gray for info */
+    border: 1px solid #455a64;
+    color: #cfd8dc;
+}
+
+/* Public Lobby specific styles */
+.public-lobby {
+    background-color: #f5f5f5; /* Light gray for public lobby */
+    border-color: #e0e0e0;
+    padding: 1.5rem; /* More padding */
+}
+body.dark .public-lobby {
+    background-color: #3a3a3a; /* Darker gray for public lobby */
+    border-color: #546e7a;
+}
+.public-lobby p, .public-lobby span {
+    color: #424242; /* Ensure text is visible */
+}
+body.dark .public-lobby p, body.dark .public-lobby span {
+    color: #bdbdbd; /* Ensure text is visible in dark mode */
+}
+
+.public-game-item {
+    display: flex;
+    flex-direction: column; /* Stack on small screens */
+    align-items: flex-start; /* Align text to left */
+    padding: 0.6rem;
+    border-bottom: 1px solid #e0e0e0; /* Lighter border */
+}
+body.dark .public-game-item {
+    border-bottom: 1px solid #424242; /* Darker border */
+}
+
+.public-game-item:last-child {
+    border-bottom: none;
+}
+.public-game-item span {
+    font-size: 0.95rem;
+    color: inherit; /* Inherit from parent for theme */
+    margin-bottom: 0.25rem; /* Space between info and buttons */
+}
+
+.public-game-item .flex { /* Button container inside item */
+    width: 100%; /* Make buttons take full width on small screens */
+    justify-content: flex-end; /* Push buttons to the right */
+}
+@media (min-width: 640px) { /* Tailwind sm: breakpoint */
+    .public-game-item {
+        flex-direction: row; /* Row on larger screens */
+        justify-content: space-between;
+        align-items: center;
+    }
+    .public-game-item .flex {
+        width: auto;
+    }
+}
+
+.public-game-item button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 0.6rem;
+    background-color: #2196f3; /* Blue join button */
+    color: white;
+    transition: background-color 0.2s ease;
+}
+.public-game-item button:hover {
+    background-color: #1976d2;
+}
+body.dark .public-game-item button {
+    background-color: #5c6bc0; /* Darker blue join button */
+}
+body.dark .public-game-item button:hover {
+    background-color: #3949ab;
+}
+
+/* Input Group for Player Names */
+.input-group {
+    text-align: left; /* Align labels/inputs left */
+    margin-bottom: 1rem;
+}
+.input-group label {
+    margin-bottom: 0.5rem;
+}
+.input-group .player-name-input {
+    width: 100%;
+    max-width: 300px; /* Limit width for inputs */
+    display: block; /* Make it a block element */
+    margin: 0 auto; /* Center the input */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    .mode-selection, .setup-section, .lobby-section {
+        padding: 1rem;
+    }
+    .info-section {
+        padding: 1rem;
+    }
+    .public-game-item {
+        padding: 0.5rem;
+    }
+    .public-game-item span {
+        font-size: 0.9rem;
+    }
+    .public-game-item button {
+        font-size: 0.8rem;
+    }
+    .input-group .player-name-input {
+        max-width: 100%; /* Full width on tiny screens */
+    }
+}

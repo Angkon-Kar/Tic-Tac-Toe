@@ -1,7 +1,7 @@
 // js/main.js
 
 import * as Auth from './auth.js';
-import * as UI from './ui.js'; // Corrected: Removed extra asterisk
+import * as UI from './ui.js';
 import * as GameLogic from './gameLogic.js';
 import * as OnlineGame from './onlineGame.js';
 
@@ -20,6 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
         UI.setUserIdDisplay(userId);
         console.log("Main: Firebase authentication ready, userId:", userId);
 
+        // Set initial online player name display (can be updated later by user input)
+        const onlinePlayerNameInput = UI.getOnlinePlayerNameInput();
+        if (onlinePlayerNameInput) {
+            onlinePlayerNameInput.value = `Player (${userId.substring(0, 4)})`; // Default name for online
+            UI.setCurrentUserNameDisplay(onlinePlayerNameInput.value);
+        } else {
+            // Fallback if onlinePlayerNameInput is somehow not found (shouldn't happen with correct HTML)
+            UI.setCurrentUserNameDisplay(`Guest (${userId.substring(0, 4)})`);
+        }
+
         // If there was a pending request to show the online lobby before auth was ready
         if (UI.isOnlineLobbyRequestPending()) {
             UI.hideModal(); // Hide the authentication modal
@@ -29,17 +39,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Online Player Name Input Listener (for display in lobby) ---
+    // Moved this listener here, after UI.initDOMElements and Auth.initializeFirebaseAndAuth
+    // to ensure onlinePlayerNameInput is available and userId is set.
+    const onlinePlayerNameInput = UI.getOnlinePlayerNameInput();
+    if (onlinePlayerNameInput) {
+        onlinePlayerNameInput.addEventListener('input', () => {
+            const name = onlinePlayerNameInput.value.trim();
+            const userId = Auth.getCurrentUserId();
+            UI.setCurrentUserNameDisplay(name || `Guest (${userId ? userId.substring(0, 4) : '...' })`);
+        });
+    }
+
+
     // --- Mode Selection Buttons ---
-    // Use getter functions to ensure elements are retrieved after initDOMElements
     const localPvPButton = UI.getLocalPvPButton();
     const onlinePvPButton = UI.getOnlinePvPButton();
     const pvcModeButton = UI.getPvcModeButton();
 
     if (localPvPButton) {
         localPvPButton.addEventListener('click', () => {
-            console.log("Main: Local 2-Player button clicked.");
-            GameLogic.initializeGame('localPvP');
-            UI.showGameArea('localPvP');
+            console.log("Main: Local 2-Player button clicked. Showing setup.");
+            UI.showLocalPvPSetup();
+            // Set default names for local players
+            const playerXNameInput = UI.getPlayerXNameInput();
+            const playerONameInput = UI.getPlayerONameInput();
+            if (playerXNameInput) playerXNameInput.value = 'Player X';
+            if (playerONameInput) playerONameInput.value = 'Player O';
         });
     } else {
         console.error("Main: localPvPButton not found!");
@@ -59,13 +85,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (pvcModeButton) {
         pvcModeButton.addEventListener('click', () => {
-            console.log("Main: Player vs. Computer button clicked.");
-            GameLogic.initializeGame('PvC');
-            UI.showGameArea('PvC');
+            console.log("Main: Player vs. AI button clicked. Showing setup.");
+            UI.showPvcSetup();
+            const pvcPlayerNameInput = UI.getPvcPlayerNameInput();
+            if (pvcPlayerNameInput) pvcPlayerNameInput.value = 'Human Player'; // Default name for PvC
         });
     } else {
         console.error("Main: pvcModeButton not found!");
     }
+
+    // --- Local PvP Setup Buttons ---
+    const startLocalGameButton = UI.getStartLocalGameButton();
+    const playerXNameInput = UI.getPlayerXNameInput();
+    const playerONameInput = UI.getPlayerONameInput();
+    const backToModesFromLocalSetup = UI.getBackToModesFromLocalSetup();
+
+    if (startLocalGameButton) {
+        startLocalGameButton.addEventListener('click', () => {
+            const playerXName = playerXNameInput.value.trim() || 'Player X';
+            const playerOName = playerONameInput.value.trim() || 'Player O';
+            GameLogic.initializeGame('localPvP', false, { X: playerXName, O: playerOName });
+            UI.showGameArea('localPvP');
+        });
+    } else { console.error("Main: startLocalGameButton not found!"); }
+
+    if (backToModesFromLocalSetup) {
+        backToModesFromLocalSetup.addEventListener('click', () => {
+            UI.showModeSelection();
+        });
+    } else { console.error("Main: backToModesFromLocalSetup not found!"); }
+
+    // --- Player vs AI Setup Buttons ---
+    const pvcPlayerNameInput = UI.getPvcPlayerNameInput();
+    const aiEasyButton = UI.getAiEasyButton();
+    const aiMediumButton = UI.getAiMediumButton();
+    const aiHardButton = UI.getAiHardButton();
+    const backToModesFromPvcSetup = UI.getBackToModesFromPvcSetup();
+
+    const startPvcGame = (difficulty) => {
+        const playerName = pvcPlayerNameInput.value.trim() || 'Human Player';
+        GameLogic.initializeGame('PvC', false, { X: playerName, O: 'AI' }, difficulty);
+        UI.showGameArea('PvC');
+    };
+
+    if (aiEasyButton) { aiEasyButton.addEventListener('click', () => startPvcGame('easy')); } else { console.error("Main: aiEasyButton not found!"); }
+    if (aiMediumButton) { aiMediumButton.addEventListener('click', () => startPvcGame('medium')); } else { console.error("Main: aiMediumButton not found!"); }
+    if (aiHardButton) { aiHardButton.addEventListener('click', () => startPvcGame('hard')); } else { console.error("Main: aiHardButton not found!"); }
+
+    if (backToModesFromPvcSetup) {
+        backToModesFromPvcSetup.addEventListener('click', () => {
+            UI.showModeSelection();
+        });
+    } else { console.error("Main: backToModesFromPvcSetup not found!"); }
 
 
     // --- Online Lobby Buttons ---
@@ -80,14 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
         createGameButton.addEventListener('click', () => {
             const gameName = newGameNameInput ? newGameNameInput.value.trim() : '';
             const isPrivate = privateGameCheckbox ? privateGameCheckbox.checked : false;
-            OnlineGame.createNewOnlineGame(gameName, isPrivate);
+            const playerName = onlinePlayerNameInput.value.trim() || `Player (${Auth.getCurrentUserId().substring(0, 4)})`;
+            OnlineGame.createNewOnlineGame(gameName, isPrivate, playerName);
         });
     } else { console.error("Main: createGameButton not found!"); }
 
     if (joinGameButton) {
         joinGameButton.addEventListener('click', () => {
             const gameId = joinGameIdInput ? joinGameIdInput.value.trim() : '';
-            OnlineGame.joinOnlineGame(gameId);
+            const playerName = onlinePlayerNameInput.value.trim() || `Player (${Auth.getCurrentUserId().substring(0, 4)})`;
+            OnlineGame.joinOnlineGame(gameId, playerName);
         });
     } else { console.error("Main: joinGameButton not found!"); }
 
@@ -116,27 +189,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const resetButton = UI.getResetButton();
+    const startNewRoundButton = UI.getStartNewRoundButton();
+    const leaveGameButton = UI.getLeaveGameButton();
+    const exitSpectatorModeButton = UI.getExitSpectatorModeButton();
+
     if (resetButton) {
         resetButton.addEventListener('click', () => {
             const currentMode = GameLogic.getGameMode();
             if (currentMode === 'localPvP' || currentMode === 'PvC') {
-                GameLogic.initializeGame(currentMode); // Reset local/PvC game
-            } else if (currentMode === 'onlinePvP') {
-                OnlineGame.handleOnlineGameReset(false); // Full reset for online
+                const playerNames = GameLogic.getPlayerNames(); // Get names from current game logic
+                GameLogic.initializeGame(currentMode, false, playerNames); // Reset local/PvC game, preserve names
             }
+            // Online reset logic is now split into startNewRound and leaveGame
         });
     } else { console.error("Main: resetButton not found!"); }
 
-
-    const rematchButton = UI.getRematchButton();
-    if (rematchButton) {
-        rematchButton.addEventListener('click', () => {
-            const currentMode = GameLogic.getGameMode();
-            if (currentMode === 'onlinePvP') {
-                OnlineGame.handleOnlineGameReset(true); // Rematch for online
-            }
+    if (startNewRoundButton) {
+        startNewRoundButton.addEventListener('click', () => {
+            console.log("Main: Start New Round button clicked.");
+            OnlineGame.startNewOnlineRound();
         });
-    } else { console.error("Main: rematchButton not found!"); }
+    } else { console.error("Main: startNewRoundButton not found!"); }
+
+    if (leaveGameButton) {
+        leaveGameButton.addEventListener('click', () => {
+            console.log("Main: Leave Game button clicked.");
+            OnlineGame.leaveOnlineGame();
+        });
+    } else { console.error("Main: leaveGameButton not found!"); }
+
+    if (exitSpectatorModeButton) {
+        exitSpectatorModeButton.addEventListener('click', () => {
+            console.log("Main: Exit Spectator Mode button clicked.");
+            OnlineGame.exitSpectatorMode();
+        });
+    } else { console.error("Main: exitSpectatorModeButton not found!"); }
 
 
     const backToModesFromGame = UI.getBackToModesFromGame();
@@ -144,9 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
         backToModesFromGame.addEventListener('click', () => {
             const currentMode = GameLogic.getGameMode();
             if (currentMode === 'onlinePvP') {
-                OnlineGame.exitOnlineGame(); // Clean up online game state
+                // If in online mode (player or spectator), use exitOnlineGame to clean up
+                OnlineGame.exitOnlineGame();
+            } else {
+                // For local or PvC, just show mode selection
+                UI.showModeSelection();
             }
-            UI.showModeSelection();
         });
     } else { console.error("Main: backToModesFromGame not found!"); }
 

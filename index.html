@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic Tac Toe Game</title>
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Link to your custom CSS file -->
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- Link to your custom CSS files -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/lobby.css">
+    <link rel="stylesheet" href="css/chat.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for icons (e.g., chat, copy, sun/moon) -->
-    <link rel="icon" type="image/png" href="assets/tic-tac-toe.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
@@ -30,20 +33,54 @@
             <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Choose Game Mode:</h2>
             <button id="localPvPButton" class="mode-button">Local 2-Player</button>
             <button id="onlinePvPButton" class="mode-button">Online 2-Player</button>
-            <button id="pvcModeButton" class="mode-button">Player vs. Computer</button>
+            <button id="pvcModeButton" class="mode-button">Player vs. AI</button>
+        </div>
+
+        <!-- Local PvP Setup Screen -->
+        <div id="localPvPSetupSection" class="hidden setup-section">
+            <h2 class="text-xl font-semibold mb-4">Local 2-Player Setup</h2>
+            <div class="input-group">
+                <label for="playerXNameInput" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Player X Name:</label>
+                <input type="text" id="playerXNameInput" placeholder="Enter Player X Name" class="player-name-input">
+            </div>
+            <div class="input-group mt-4">
+                <label for="playerONameInput" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Player O Name:</label>
+                <input type="text" id="playerONameInput" placeholder="Enter Player O Name" class="player-name-input">
+            </div>
+            <button id="startLocalGameButton" class="action-button bg-green-600 hover:bg-green-700 mt-6">Start Local Game</button>
+            <button id="backToModesFromLocalSetup" class="back-button mt-4">Back to Modes</button>
+        </div>
+
+        <!-- Player vs AI Setup Screen -->
+        <div id="pvcSetupSection" class="hidden setup-section">
+            <h2 class="text-xl font-semibold mb-4">Player vs. AI Setup</h2>
+            <div class="input-group">
+                <label for="pvcPlayerNameInput" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Your Name:</label>
+                <input type="text" id="pvcPlayerNameInput" placeholder="Enter Your Name" class="player-name-input">
+            </div>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-6 mb-4">Choose AI Difficulty:</h3>
+            <button id="aiEasyButton" class="mode-button">Easy</button>
+            <button id="aiMediumButton" class="mode-button">Medium</button>
+            <button id="aiHardButton" class="mode-button">Hard</button>
+            <button id="backToModesFromPvcSetup" class="back-button mt-4">Back to Modes</button>
         </div>
 
         <!-- Online Multiplayer Lobby Section -->
         <div id="onlineLobbySection" class="hidden lobby-section">
             <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Online Multiplayer</h2>
-            <div class="info-section mb-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg shadow-inner">
-                <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">Your User ID: <span id="userIdDisplay" class="font-semibold text-blue-700 dark:text-blue-300">Loading...</span></p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">Current Game ID: <span id="gameIdDisplay" class="font-semibold text-purple-700 dark:text-purple-300">None</span>
-                    <button id="copyGameIdButton" class="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-colors duration-200">Copy</button>
+            <div class="info-section mb-6 p-4 rounded-lg shadow-inner text-gray-800 dark:text-gray-200">
+                <p class="text-sm mb-2">Your User ID: <span id="userIdDisplay" class="font-semibold text-blue-700 dark:text-blue-300">Loading...</span></p>
+                <p class="text-sm mb-2">Your Name: <span id="currentUserNameDisplay" class="font-semibold text-teal-700 dark:text-teal-300">Guest</span></p>
+                <p class="text-sm">Current Game ID: <span id="gameIdDisplay" class="font-semibold text-purple-700 dark:text-purple-300">None</span>
+                    <button id="copyGameIdButton" class="ml-2 px-2 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors duration-200">Copy</button>
                 </p>
             </div>
-            <div class="flex flex-col sm:flex-row justify-center gap-2 mb-4">
-                <button id="createGameButton" class="action-button bg-green-500 hover:bg-green-600">Create New Game</button>
+            <div class="input-group mb-4">
+                <label for="onlinePlayerNameInput" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Your Online Name:</label>
+                <input type="text" id="onlinePlayerNameInput" placeholder="Enter Your Name" class="player-name-input">
+            </div>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-2 mb-4">
+                <button id="createGameButton" class="action-button bg-green-600 hover:bg-green-700">Create New Game</button>
                 <input type="text" id="newGameNameInput" placeholder="Optional: Game Name" class="flex-grow p-2 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <label class="flex items-center space-x-2 cursor-pointer">
                     <input type="checkbox" id="privateGameCheckbox" class="form-checkbox h-5 w-5 text-blue-600 rounded">
@@ -52,12 +89,12 @@
             </div>
             <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
                 <input type="text" id="joinGameIdInput" placeholder="Enter Game ID" class="flex-grow p-2 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <button id="joinGameButton" class="action-button bg-purple-500 hover:bg-purple-600 w-full sm:w-auto">Join Game</button>
+                <button id="joinGameButton" class="action-button bg-purple-600 hover:bg-purple-700 w-full sm:w-auto text-base">Join Game</button>
             </div>
 
-            <div class="public-lobby mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
+            <div class="public-lobby mt-8 p-4 rounded-lg shadow-inner">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Public Games Available:</h3>
-                <div id="publicGamesList" class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2">
+                <div id="publicGamesList" class="max-h-48 overflow-y-auto border rounded-md p-2">
                     <p class="text-gray-500 dark:text-gray-400">Loading public games...</p>
                 </div>
             </div>
@@ -84,19 +121,24 @@
                 <div class="cell" data-cell-index="7"></div>
                 <div class="cell" data-cell-index="8"></div>
             </div>
-            <button class="reset-button" id="resetButton">Reset Game</button>
-            <button id="rematchButton" class="action-button bg-blue-500 hover:bg-blue-600 hidden">Rematch</button>
+
+            <div class="game-buttons-container">
+                <button class="reset-button" id="resetButton">Reset Game</button>
+                <button id="startNewRoundButton" class="action-button bg-emerald-600 hover:bg-emerald-700 hidden">Start New Round</button>
+                <button id="leaveGameButton" class="back-button bg-red-500 hover:bg-red-600 hidden">Leave Game</button>
+                <button id="exitSpectatorModeButton" class="back-button bg-gray-600 hover:bg-gray-700 hidden">Exit Spectator Mode</button>
+            </div>
             <button id="backToModesFromGame" class="back-button mt-4">Back to Modes</button>
 
             <!-- In-Game Chat Section -->
-            <div id="chatSection" class="hidden mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-inner">
+            <div id="chatSection" class="hidden mt-6 p-4 rounded-lg shadow-inner">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">In-Game Chat</h3>
-                <div id="chatMessages" class="chat-messages max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 mb-3">
+                <div id="chatMessages" class="chat-messages max-h-40 overflow-y-auto border rounded-md p-2 mb-3">
                     <!-- Chat messages will be appended here -->
                 </div>
                 <div class="flex gap-2">
-                    <input type="text" id="chatInput" placeholder="Type your message..." class="flex-grow p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <button id="sendChatButton" class="action-button bg-blue-500 hover:bg-blue-600 px-4 py-2 text-sm">Send</button>
+                    <input type="text" id="chatInput" placeholder="Type your message..." class="flex-grow p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <button id="sendChatButton" class="action-button bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm">Send</button>
                 </div>
             </div>
         </div>
@@ -106,7 +148,7 @@
     <div id="customModal" class="modal-overlay hidden">
         <div class="modal-content">
             <p id="modalMessage" class="text-lg font-semibold text-gray-800 dark:text-gray-200"></p>
-            <button id="modalCloseButton" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">OK</button>
+            <button id="modalCloseButton" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">OK</button>
         </div>
     </div>
 
