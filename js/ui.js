@@ -3,8 +3,8 @@
 // Declare DOM element variables (will be populated in initDOMElements)
 let modeSelection, localPvPButton, onlinePvPButton, pvcModeButton;
 let localPvPSetupSection, playerXNameInput, playerONameInput, startLocalGameButton, backToModesFromLocalSetup;
-// Corrected PVC elements to match HTML and fix the TypeError
-let pvcSetupSection, pvcPlayerNameInput, aiEasyButton, aiMediumButton, aiHardButton, startPvCButton, backToModesFromPvC;
+// CRITICAL: Ensure backToModesFromPvcSetup is declared here globally
+let pvcSetupSection, pvcPlayerNameInput, aiEasyButton, aiMediumButton, aiHardButton, backToModesFromPvcSetup;
 let onlineLobbySection, userIdDisplay, currentUserNameDisplay, onlinePlayerNameInput, gameIdDisplay, copyGameIdButton, createGameButton, newGameNameInput, privateGameCheckbox, joinGameIdInput, joinGameButton, backToModesFromOnline, publicGamesList;
 let gameArea, gameStatus, cells, resetButton, startNewRoundButton, leaveGameButton, exitSpectatorModeButton, backToModesFromGame;
 let xScoreDisplay, oScoreDisplay, drawsDisplay;
@@ -30,14 +30,13 @@ export function initDOMElements() {
     startLocalGameButton = document.getElementById('startLocalGameButton');
     backToModesFromLocalSetup = document.getElementById('backToModesFromLocalSetup');
 
-    // PvC Setup Elements
+    // CRITICAL: Ensure assignment happens here
     pvcSetupSection = document.getElementById('pvcSetupSection');
     pvcPlayerNameInput = document.getElementById('pvcPlayerNameInput');
     aiEasyButton = document.getElementById('aiEasyButton');
     aiMediumButton = document.getElementById('aiMediumButton');
     aiHardButton = document.getElementById('aiHardButton');
-    startPvCButton = document.getElementById('startPvCButton'); // Added this missing element
-    backToModesFromPvC = document.getElementById('backToModesFromPvC');
+    backToModesFromPvcSetup = document.getElementById('backToModesFromPvcSetup');
 
     onlineLobbySection = document.getElementById('onlineLobbySection');
     userIdDisplay = document.getElementById('userIdDisplay');
@@ -55,13 +54,13 @@ export function initDOMElements() {
 
     gameArea = document.getElementById('gameArea');
     gameStatus = document.getElementById('gameStatus');
-    cells = document.querySelectorAll('.cell'); // NodeList
+    cells = document.querySelectorAll('.cell'); 
     resetButton = document.getElementById('resetButton');
     startNewRoundButton = document.getElementById('startNewRoundButton');
     leaveGameButton = document.getElementById('leaveGameButton');
     exitSpectatorModeButton = document.getElementById('exitSpectatorModeButton');
     backToModesFromGame = document.getElementById('backToModesFromGame');
-
+    
     xScoreDisplay = document.getElementById('xScore');
     oScoreDisplay = document.getElementById('oScore');
     drawsDisplay = document.getElementById('draws');
@@ -74,25 +73,25 @@ export function initDOMElements() {
     customModal = document.getElementById('customModal');
     modalMessage = document.getElementById('modalMessage');
     modalCloseButton = document.getElementById('modalCloseButton');
-
+    
     themeToggle = document.getElementById('themeToggle');
 
-    // Add console.error if any critical element is not found
-    if (!modeSelection) console.error("UI: modeSelection element not found!");
+    // Add close listener for modal
+    if (modalCloseButton) {
+        modalCloseButton.addEventListener('click', hideModal);
+    }
 }
 
-
 /**
- * Displays a custom modal message to the user.
+ * Shows the custom modal with a message.
  * @param {string} message - The message to display.
  */
 export function showModal(message) {
-    if (modalMessage && customModal) {
+    if (customModal && modalMessage) {
         modalMessage.textContent = message;
         customModal.classList.remove('hidden');
-        console.log("UI: Modal shown:", message);
-    } else {
-        console.error("UI: Modal elements not found, cannot show modal:", message);
+        // Add a temporary class to enable the fade-in effect if needed
+        setTimeout(() => customModal.classList.add('opacity-100'), 10); 
     }
 }
 
@@ -101,352 +100,372 @@ export function showModal(message) {
  */
 export function hideModal() {
     if (customModal) {
-        customModal.classList.add('hidden');
-        console.log("UI: Modal hidden.");
+        customModal.classList.remove('opacity-100');
+        // Use a timeout to wait for the fade-out transition before hiding completely
+        setTimeout(() => customModal.classList.add('hidden'), 300); 
     }
 }
 
-/**
- * Sets the user ID display in the UI.
- * @param {string} id - The user ID.
- */
-export function setUserIdDisplay(id) {
-    if (userIdDisplay) userIdDisplay.textContent = id;
+// --- Theme Toggling ---
+
+export function initializeTheme() {
+    // Check local storage for theme preference, default to system preference
+    const isDarkMode = localStorage.getItem('theme') === 'dark' || 
+                       (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    document.body.classList.toggle('dark', isDarkMode);
+    updateThemeToggleIcon(isDarkMode);
 }
 
-/**
- * Sets the current user's name display in the UI.
- * @param {string} name - The user's name.
- */
-export function setCurrentUserNameDisplay(name) {
-    if (currentUserNameDisplay) currentUserNameDisplay.textContent = name;
+export function toggleTheme() {
+    const isDarkMode = document.body.classList.toggle('dark');
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    updateThemeToggleIcon(isDarkMode);
 }
 
-/**
- * Sets the current game ID display in the UI.
- * @param {string} id - The game ID.
- */
-export function setGameIdDisplay(id) {
-    if (gameIdDisplay) gameIdDisplay.textContent = id;
+function updateThemeToggleIcon(isDarkMode) {
+    const icon = themeToggle ? themeToggle.querySelector('i') : null;
+    if (icon) {
+        icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+    }
 }
 
+
+// --- Visibility Functions ---
+
 /**
- * Hides all main sections and shows only the specified one.
- * @param {HTMLElement} sectionToShow - The HTML element of the section to display.
+ * Hides all main application sections.
  */
-function showOnlySection(sectionToShow) {
-    const sections = [
-        modeSelection,
-        localPvPSetupSection,
-        pvcSetupSection,
-        onlineLobbySection,
-        gameArea
-    ];
+function hideAllSections() {
+    const sections = [modeSelection, localPvPSetupSection, pvcSetupSection, onlineLobbySection, gameArea];
     sections.forEach(section => {
-        if (section) {
-            if (section === sectionToShow) {
-                section.classList.remove('hidden');
-            } else {
-                section.classList.add('hidden');
-            }
-        }
+        if (section) section.classList.add('hidden');
     });
-
-    // Always hide chat when switching main sections, it's shown specifically for online games
-    if (chatSection) chatSection.classList.add('hidden');
-    // Always hide game-specific buttons when switching main sections
-    if (resetButton) resetButton.classList.add('hidden');
-    if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
-    if (leaveGameButton) leaveGameButton.classList.add('hidden');
-    if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
 }
 
-
 /**
- * Shows the mode selection screen and hides other sections.
+ * Shows the mode selection screen.
  */
 export function showModeSelection() {
-    console.log("UI: Showing mode selection.");
-    showOnlySection(modeSelection);
-    hasPendingOnlineLobbyRequest = false; // Reset this flag when leaving online flow
+    hideAllSections();
+    if (modeSelection) modeSelection.classList.remove('hidden');
+    // Hide chat when leaving game area
+    if (chatSection) chatSection.classList.add('hidden');
 }
 
 /**
- * Shows the Local PvP setup section.
+ * Shows the local PvP setup screen.
  */
 export function showLocalPvPSetup() {
-    console.log("UI: Showing Local PvP setup.");
-    showOnlySection(localPvPSetupSection);
+    hideAllSections();
+    if (localPvPSetupSection) localPvPSetupSection.classList.remove('hidden');
 }
 
 /**
- * Shows the Player vs AI setup section.
- * This function was missing and caused the "UI.showPvcSetup is not a function" error.
+ * Shows the PvC (vs AI) setup screen.
  */
 export function showPvcSetup() {
-    console.log("UI: Showing Player vs AI setup.");
-    showOnlySection(pvcSetupSection);
+    hideAllSections();
+    if (pvcSetupSection) pvcSetupSection.classList.remove('hidden');
 }
 
 /**
- * Shows the online lobby section and hides other sections.
- * @param {boolean} authReady - True if Firebase authentication is ready.
+ * Shows the online lobby screen.
+ * @param {boolean} clearList - Whether to clear the public games list.
  */
-export function showOnlineLobby(authReady) {
-    console.log("UI: Request to show online lobby. Auth Ready:", authReady);
-    if (!authReady) {
-        hasPendingOnlineLobbyRequest = true;
-        showModal("Please wait, authenticating for online mode...");
-        return;
+export function showOnlineLobby(clearList = false) {
+    hideAllSections();
+    if (onlineLobbySection) onlineLobbySection.classList.remove('hidden');
+    if (gameArea) gameArea.classList.add('hidden'); // Ensure game area is hidden
+    if (chatSection) chatSection.classList.add('hidden'); // Ensure chat is hidden
+    if (clearList && publicGamesList) {
+        publicGamesList.innerHTML = '';
     }
-    showOnlySection(onlineLobbySection);
-    if (publicGamesList) publicGamesList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading public games...</p>'; // Reset lobby list
+    // Show Online Info Section
+    const onlineInfoSection = document.getElementById('onlineInfoSection');
+    if (onlineInfoSection) {
+        onlineInfoSection.classList.remove('hidden');
+    }
 }
 
 /**
- * Shows the game area and hides other sections.
- * @param {string} mode - The current game mode.
- * @param {string} currentOnlineRole - The role of the current user in online mode ('X', 'O', or 'spectator').
+ * Shows the main game area.
+ * @param {string} mode - The game mode.
+ * @param {string|null} userRole - The user's role in the game ('X', 'O', or null for local/spectator).
+ * @param {boolean} isSpectator - Whether the user is a spectator.
  */
-export function showGameArea(mode, currentOnlineRole = null) {
-    console.log("UI: Showing game area for mode:", mode, "Role:", currentOnlineRole);
-    showOnlySection(gameArea);
+export function showGameArea(mode, userRole = null, isSpectator = false) {
+    hideAllSections();
+    if (gameArea) {
+        gameArea.classList.remove('hidden');
+        
+        // Hide/Show specific buttons based on mode
+        const buttons = [resetButton, startNewRoundButton, leaveGameButton, exitSpectatorModeButton, backToModesFromGame];
+        buttons.forEach(btn => btn ? btn.classList.remove('hidden') : null);
 
-    // Reset button visibility for all modes
-    if (resetButton) resetButton.classList.add('hidden');
-    if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
-    if (leaveGameButton) leaveGameButton.classList.add('hidden');
-    if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
-
-    if (mode === 'localPvP' || mode === 'PvC') {
-        if (resetButton) resetButton.classList.remove('hidden'); // Show reset for local/PvC
-        if (chatSection) chatSection.classList.add('hidden'); // Hide chat for local/PvC
-    } else if (mode === 'onlinePvP') {
-        if (chatSection) chatSection.classList.remove('hidden'); // Show chat for online mode
-        if (currentOnlineRole === 'spectator') {
-            if (exitSpectatorModeButton) exitSpectatorModeButton.classList.remove('hidden');
-            // Game controls are disabled for spectators, handled by setCellsInteractive
-        } else { // Player X or O
-            if (leaveGameButton) leaveGameButton.classList.remove('hidden'); // Always show leave for players
-            // Start New Round button visibility handled by onlineGame updates
+        if (mode === 'onlinePvP') {
+            if (chatSection) chatSection.classList.remove('hidden');
+            if (isSpectator) {
+                if (resetButton) resetButton.classList.add('hidden');
+                if (startNewRoundButton) startNewRoundButton.classList.add('hidden');
+                if (leaveGameButton) leaveGameButton.classList.add('hidden');
+                if (exitSpectatorModeButton) exitSpectatorModeButton.classList.remove('hidden');
+                if (backToModesFromGame) backToModesFromGame.classList.add('hidden'); // Back button is not used in spectator mode
+            } else {
+                if (resetButton) resetButton.classList.add('hidden'); // Scores are persistent in online game, no manual reset
+                if (leaveGameButton) leaveGameButton.classList.remove('hidden');
+                if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
+            }
+            // Hide Online Info Section (it's already displayed in lobby)
+            const onlineInfoSection = document.getElementById('onlineInfoSection');
+            if (onlineInfoSection) {
+                onlineInfoSection.classList.add('hidden');
+            }
+        } else { // localPvP or PvC
+            if (chatSection) chatSection.classList.add('hidden');
+            if (resetButton) resetButton.classList.remove('hidden');
+            if (leaveGameButton) leaveGameButton.classList.add('hidden');
+            if (exitSpectatorModeButton) exitSpectatorModeButton.classList.add('hidden');
         }
     }
 }
 
+// --- Game Logic UI Updates ---
+
 /**
- * Updates the game board UI.
- * @param {Array<string>} boardState - The current state of the board.
+ * Updates the visual representation of the board.
+ * @param {Array<string>} board - The current board state.
  */
-export function updateBoardUI(boardState) {
-    if (!cells) {
-        console.error("UI: Cells not found, cannot update board UI.");
-        return;
-    }
+export function updateBoardUI(board) {
+    if (!cells || cells.length === 0) return;
+
     cells.forEach((cell, index) => {
-        cell.textContent = boardState[index];
-        cell.classList.remove('x-player', 'o-player', 'filled', 'winning-cell'); // Remove winning-cell class on update
-        if (boardState[index] === 'X') {
-            cell.classList.add('filled', 'x-player');
-        } else if (boardState[index] === 'O') {
-            cell.classList.add('filled', 'o-player');
+        const value = board[index];
+        cell.textContent = value;
+        
+        // Clear previous classes
+        cell.classList.remove('x-player', 'o-player', 'filled', 'winning-cell');
+
+        if (value === 'X') {
+            cell.classList.add('x-player', 'filled');
+        } else if (value === 'O') {
+            cell.classList.add('o-player', 'filled');
         }
     });
 }
 
 /**
  * Updates the game status message.
- * @param {string} message - The status message.
+ * @param {string} message - The status message to display.
  */
-export function setGameStatus(message) {
-    if (gameStatus) gameStatus.textContent = message;
-}
-
-/**
- * Highlights the winning cells.
- * @param {Array<number>} winningCells - Array of indices of winning cells.
- */
-export function highlightWinningCells(winningCells) {
-    if (!cells) {
-        console.error("UI: Cells not found, cannot highlight winning cells.");
-        return;
+export function updateGameStatus(message) {
+    if (gameStatus) {
+        gameStatus.textContent = message;
     }
-    winningCells.forEach(index => {
-        if (cells[index]) cells[index].classList.add('winning-cell');
-    });
 }
 
 /**
- * Enables or disables cells for interaction.
- * @param {boolean} enable - True to enable, false to disable.
- * @param {Array<string>} boardState - Current board state to check for filled cells.
- * @param {string} currentTurnPlayer - The player whose turn it is (for online mode).
- * @param {string} localPlayerRole - The current user's role (X/O) in online mode.
- * @param {string} mode - The current game mode.
+ * Updates the displayed scores.
+ * @param {object} scores - The scores object {xWins, oWins, draws}.
  */
-export function setCellsInteractive(enable, boardState, currentTurnPlayer = null, localPlayerRole = null, mode = 'localPvP') {
-    if (!cells) {
-        console.error("UI: Cells not found, cannot set interactivity.");
-        return;
-    }
-    cells.forEach((cell, index) => {
-        const isOnlinePlayerTurn = (mode === 'onlinePvP' && localPlayerRole !== 'spectator' && currentTurnPlayer === localPlayerRole);
-        const isLocalOrPvC = (mode === 'localPvP' || mode === 'PvC');
-        const isSpectator = (mode === 'onlinePvP' && localPlayerRole === 'spectator');
-
-        if (enable && boardState[index] === '') {
-            if (isLocalOrPvC || isOnlinePlayerTurn) {
-                cell.style.pointerEvents = 'auto';
-                cell.classList.remove('cursor-not-allowed');
-            } else if (isSpectator) {
-                cell.style.pointerEvents = 'none'; // Spectators cannot click
-                cell.classList.add('cursor-not-allowed');
-            } else { // Online, but not your turn
-                cell.style.pointerEvents = 'none';
-                cell.classList.add('cursor-not-allowed');
-            }
-        } else { // Cell is filled or game not active
-            cell.style.pointerEvents = 'none';
-            cell.classList.add('cursor-not-allowed');
-        }
-    });
-}
-
-/**
- * Updates the score display.
- * @param {object} scores - Object with xWins, oWins, draws.
- */
-export function updateScoreDisplay(scores) {
+export function updateScores(scores) {
     if (xScoreDisplay) xScoreDisplay.textContent = scores.xWins;
     if (oScoreDisplay) oScoreDisplay.textContent = scores.oWins;
     if (drawsDisplay) drawsDisplay.textContent = scores.draws;
 }
 
 /**
- * Adds a chat message to the chat UI.
- * @param {object} messageData - { sender: string, text: string, senderId: string }
- * @param {string} currentUserId - The ID of the current user to determine 'self' messages.
+ * Highlights the winning cells.
+ * @param {Array<string>} board - The current board state.
+ * @param {string} winner - The winning player ('X' or 'O').
+ * @param {Array<Array<number>>} winningConditions - The possible winning combinations.
  */
-export function addChatMessage(messageData, currentUserId) {
-    if (!chatMessagesContainer) {
-        console.error("UI: Chat messages container not found, cannot add message.");
-        return;
+export function highlightWinningCells(board, winner, winningConditions) {
+    const winningCombination = winningConditions.find(combination => {
+        return combination.every(index => board[index] === winner);
+    });
+
+    if (winningCombination) {
+        winningCombination.forEach(index => {
+            if (cells[index]) {
+                cells[index].classList.add('winning-cell');
+            }
+        });
     }
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('chat-message', 'p-2', 'rounded-lg', 'mb-2');
-
-    if (messageData.senderId === currentUserId) {
-        messageElement.classList.add('self'); // Tailwind classes handled in CSS
-    }
-
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('sender', 'font-semibold', 'text-sm', 'block', 'mb-1');
-    senderSpan.textContent = messageData.sender + ":";
-
-    const textSpan = document.createElement('span');
-    textSpan.classList.add('text'); 
-    textSpan.textContent = messageData.text;
-
-    messageElement.appendChild(senderSpan);
-    messageElement.appendChild(textSpan);
-    chatMessagesContainer.appendChild(messageElement);
-
-    // Scroll to the bottom of the chat
-    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
 /**
- * Clears all chat messages from the UI.
+ * Clears all winning cell highlights.
  */
-export function clearChatMessages() {
-    if (chatMessagesContainer) chatMessagesContainer.innerHTML = '';
+export function clearWinningHighlight() {
+    if (cells) {
+        cells.forEach(cell => {
+            cell.classList.remove('winning-cell');
+        });
+    }
 }
 
 /**
- * Renders the list of public games in the lobby.
- * @param {Array<object>} games - Array of game objects.
- * @param {Function} onJoinGame - Callback function when a join button is clicked.
- * @param {Function} onSpectateGame - Callback function when a spectate button is clicked.
+ * Sets whether the cells are interactive (clickable).
+ * @param {boolean} isInteractive - True to make them clickable, false otherwise.
+ * @param {Array<string>} board - The current board state (needed to check for filled).
  */
-export function renderPublicGames(games, onJoinGame, onSpectateGame) {
-    if (!publicGamesList) {
-        console.error("UI: Public games list container not found, cannot render games.");
-        return;
-    }
-    publicGamesList.innerHTML = ''; // Clear previous list
-
-    if (games.length === 0) {
-        publicGamesList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No public games available. Create one!</p>';
-        return;
-    }
-
-    games.forEach(game => {
-        const gameItem = document.createElement('div');
-        gameItem.classList.add('public-game-item', 'py-2');
-
-        const gameInfo = document.createElement('span');
-        const gameName = game.gameName && game.gameName !== '' ? `"${game.gameName}"` : `Game ${game.gameId.substring(0, 6)}`;
-        const playerXName = game.playerXName || `Player X (${game.playerXId.substring(0,4)})`;
-        const playerOName = game.playerOId ? (game.playerOName || `Player O (${game.playerOId.substring(0,4)})`) : 'Waiting...';
-        const playersStatus = game.playerOId ? `${playerXName} vs ${playerOName}` : `${playerXName} (Waiting)`;
-
-        gameInfo.textContent = `${gameName} - ${playersStatus}`;
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.classList.add('flex', 'gap-2', 'mt-2', 'sm:mt-0');
-
-        if (!game.playerOId) { // Game is waiting for a second player
-            const joinButton = document.createElement('button');
-            joinButton.classList.add('px-3', 'py-1', 'bg-blue-600', 'text-white', 'rounded-md', 'hover:bg-blue-700', 'transition-colors', 'duration-200');
-            joinButton.textContent = 'Join';
-            joinButton.onclick = () => onJoinGame(game.gameId);
-            buttonContainer.appendChild(joinButton);
-        } else { // Game is full, offer spectate
-            const spectateButton = document.createElement('button');
-            spectateButton.classList.add('px-3', 'py-1', 'bg-gray-600', 'text-white', 'rounded-md', 'hover:bg-gray-700', 'transition-colors', 'duration-200');
-            spectateButton.textContent = 'Spectate';
-            spectateButton.onclick = () => onSpectateGame(game.gameId);
-            buttonContainer.appendChild(spectateButton);
+export function setCellsInteractive(isInteractive, board) {
+    if (!cells) return;
+    cells.forEach((cell, index) => {
+        // Only cells that are NOT filled can have the pointer.
+        // If the game is not interactive, remove the pointer regardless.
+        if (isInteractive && board[index] === '') {
+            cell.style.pointerEvents = 'auto';
+            cell.classList.remove('pointer-events-none');
+        } else {
+            cell.style.pointerEvents = 'none';
+            cell.classList.add('pointer-events-none');
         }
-
-        gameItem.appendChild(gameInfo);
-        gameItem.appendChild(buttonContainer);
-        publicGamesList.appendChild(gameItem);
     });
 }
 
+
+// --- Online Lobby Functions (Abbreviated) ---
+
 /**
- * Toggles dark mode on/off.
+ * Adds a public game entry to the lobby list.
+ * @param {object} game - The game object from Firestore.
  */
-export function toggleTheme() {
-    const isDarkMode = document.body.classList.toggle('dark');
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    console.log("UI: Theme toggled to:", isDarkMode ? 'dark' : 'light');
+export function addPublicGameEntry(game) {
+    if (!publicGamesList) return;
+
+    // Check if element already exists to prevent duplicates on update
+    let entry = document.getElementById(`game-entry-${game.id}`);
+    if (!entry) {
+        entry = document.createElement('div');
+        entry.id = `game-entry-${game.id}`;
+        entry.classList.add('public-game-item', 'flex', 'items-center', 'justify-between', 'p-3', 'border-b', 'dark:border-gray-700', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'transition-colors');
+        publicGamesList.appendChild(entry);
+    }
+    
+    const statusText = game.playerCount === 1 ? 'Waiting for Player' : 'Game Full / In Progress';
+    const buttonText = game.playerCount === 1 ? 'Join' : 'Spectate';
+    const buttonClass = game.playerCount === 1 ? 'join-game-button' : 'spectate-game-button';
+    const isDisabled = game.playerCount === 2; // Disable join button if game is full
+
+    entry.innerHTML = `
+        <div class="flex flex-col flex-grow">
+            <span class="font-semibold text-gray-800 dark:text-gray-100">${game.name || 'Untitled Game'}</span>
+            <span class="text-sm text-gray-600 dark:text-gray-400">Host: ${game.playerXName}</span>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+            <span class="text-sm font-medium ${game.playerCount === 1 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}">${statusText}</span>
+            <button data-game-id="${game.id}" 
+                    class="action-button ${buttonClass} bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}"
+                    ${isDisabled ? 'disabled' : ''}>
+                ${buttonText}
+            </button>
+        </div>
+    `;
 }
 
 /**
- * Initializes the theme based on user preference or system setting.
+ * Removes a public game entry from the lobby list.
+ * @param {string} gameId - The ID of the game to remove.
  */
-export function initializeTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.body.classList.add(savedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.body.classList.add('dark');
+export function removePublicGameEntry(gameId) {
+    const entry = document.getElementById(`game-entry-${gameId}`);
+    if (entry && publicGamesList) {
+        publicGamesList.removeChild(entry);
     }
 }
 
 /**
- * Gets the currently selected AI difficulty from the radio group.
- * @returns {string} The selected difficulty ('easy', 'medium', or 'hard').
+ * Sets the displayed user ID.
+ * @param {string} userId - The user ID.
  */
-export function getSelectedAiDifficulty() {
-    if (aiEasyButton && aiEasyButton.checked) return 'easy';
-    if (aiMediumButton && aiMediumButton.checked) return 'medium';
-    if (aiHardButton && aiHardButton.checked) return 'hard';
-    return 'medium'; // Default to medium
+export function setUserIdDisplay(userId) {
+    if (userIdDisplay) {
+        userIdDisplay.textContent = `ID: ${userId.substring(0, 8)}...`;
+    }
 }
 
-// Export the flag for main.js to check if online lobby request is pending
+/**
+ * Sets the displayed current player name.
+ * @param {string} name - The user's chosen name.
+ */
+export function setCurrentUserNameDisplay(name) {
+    if (currentUserNameDisplay) {
+        currentUserNameDisplay.textContent = name;
+    }
+}
+
+/**
+ * Sets the displayed game ID in the info section.
+ * @param {string} gameId - The game ID.
+ */
+export function setGameIdDisplay(gameId) {
+    if (gameIdDisplay) {
+        gameIdDisplay.textContent = `Game ID: ${gameId}`;
+    }
+}
+
+/**
+ * Shows/hides spectator buttons.
+ * @param {boolean} isSpectator - True to show spectator mode buttons.
+ */
+export function setSpectatorMode(isSpectator) {
+    if (leaveGameButton) {
+        leaveGameButton.classList.toggle('hidden', isSpectator);
+    }
+    if (exitSpectatorModeButton) {
+        exitSpectatorModeButton.classList.toggle('hidden', !isSpectator);
+    }
+    if (startNewRoundButton) {
+        // Spectators cannot start new rounds
+        startNewRoundButton.classList.add('hidden');
+    }
+}
+
+// --- Chat Functions (Abbreviated) ---
+export function addChatMessage(message, currentUserId) {
+    if (!chatMessagesContainer) return;
+
+    const isSelf = message.senderId === currentUserId;
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message', 'flex', 'flex-col', 'max-w-xs', 'shadow-md');
+    messageElement.classList.toggle('self', isSelf);
+    messageElement.classList.toggle('ml-auto', isSelf);
+
+    const senderName = message.senderName || 'Anonymous';
+    const timestamp = new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    messageElement.innerHTML = `
+        <span class="sender font-semibold text-xs text-blue-600 dark:text-blue-300">${senderName} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">(${timestamp})</span></span>
+        <span class="text text-sm text-gray-800 dark:text-gray-100">${message.text}</span>
+    `;
+
+    chatMessagesContainer.appendChild(messageElement);
+    // Scroll to the bottom
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+    // Clear the input box if the message was from self
+    if (isSelf && chatInput) {
+        chatInput.value = '';
+    }
+}
+
+/**
+ * Clears all chat messages.
+ */
+export function clearChatMessages() {
+    if (chatMessagesContainer) {
+        chatMessagesContainer.innerHTML = '';
+    }
+}
+
+// --- Online Lobby Request Handling (for Auth dependency) ---
+
+export function setOnlineLobbyRequestPending(isPending) {
+    hasPendingOnlineLobbyRequest = isPending;
+}
+
 export function isOnlineLobbyRequestPending() {
     return hasPendingOnlineLobbyRequest;
 }
@@ -455,31 +474,25 @@ export function clearOnlineLobbyRequestPending() {
     hasPendingOnlineLobbyRequest = false;
 }
 
-// Export getter functions for the DOM elements
-export function getModeSelection() { return modeSelection; }
+
+// --- Getter Exported Functions (The fix area) ---
+
 export function getLocalPvPButton() { return localPvPButton; }
 export function getOnlinePvPButton() { return onlinePvPButton; }
 export function getPvcModeButton() { return pvcModeButton; }
 
-export function getLocalPvPSetupSection() { return localPvPSetupSection; }
 export function getPlayerXNameInput() { return playerXNameInput; }
 export function getPlayerONameInput() { return playerONameInput; }
 export function getStartLocalGameButton() { return startLocalGameButton; }
 export function getBackToModesFromLocalSetup() { return backToModesFromLocalSetup; }
 
-// PvC Getters (Corrected names/variables)
-export function getPvcSetupSection() { return pvcSetupSection; }
-export function getPvcPlayerNameInput() { return pvcPlayerNameInput; } // Fixes "UI.getPvcPlayerNameInput is not a function"
+// CRITICAL FIX: The missing getter is added/confirmed here:
+export function getPvcPlayerNameInput() { return pvcPlayerNameInput; }
 export function getAiEasyButton() { return aiEasyButton; }
 export function getAiMediumButton() { return aiMediumButton; }
 export function getAiHardButton() { return aiHardButton; }
-export function getStartPvCButton() { return startPvCButton; }
-export function getBackToModesFromPvC() { return backToModesFromPvC; }
+export function getBackToModesFromPvcSetup() { return backToModesFromPvcSetup; } 
 
-// Online Lobby Getters
-export function getOnlineLobbySection() { return onlineLobbySection; }
-export function getUserIdDisplay() { return userIdDisplay; }
-export function getCurrentUserNameDisplay() { return currentUserNameDisplay; }
 export function getOnlinePlayerNameInput() { return onlinePlayerNameInput; }
 export function getGameIdDisplay() { return gameIdDisplay; }
 export function getCopyGameIdButton() { return copyGameIdButton; }
@@ -490,28 +503,12 @@ export function getJoinGameIdInput() { return joinGameIdInput; }
 export function getJoinGameButton() { return joinGameButton; }
 export function getBackToModesFromOnline() { return backToModesFromOnline; }
 export function getPublicGamesList() { return publicGamesList; }
-
-// Game Area Getters
-export function getGameArea() { return gameArea; }
-export function getGameStatus() { return gameStatus; }
 export function getCells() { return cells; }
 export function getResetButton() { return resetButton; }
 export function getStartNewRoundButton() { return startNewRoundButton; }
 export function getLeaveGameButton() { return leaveGameButton; }
 export function getExitSpectatorModeButton() { return exitSpectatorModeButton; }
 export function getBackToModesFromGame() { return backToModesFromGame; }
-
-// Score & Chat Getters
-export function getXScoreDisplay() { return xScoreDisplay; }
-export function getOScoreDisplay() { return oScoreDisplay; }
-export function getDrawsDisplay() { return drawsDisplay; }
-export function getChatSection() { return chatSection; }
-export function getChatMessagesContainer() { return chatMessagesContainer; }
 export function getChatInput() { return chatInput; }
 export function getSendChatButton() { return sendChatButton; }
-
-// Modal & Theme Getters
-export function getCustomModal() { return customModal; }
-export function getModalMessage() { return modalMessage; }
-export function getModalCloseButton() { return modalCloseButton; }
 export function getThemeToggle() { return themeToggle; }
