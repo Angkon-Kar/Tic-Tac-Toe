@@ -1,70 +1,81 @@
-# Tic-Tac-Toe: Multi-Mode Game
+# 🎮 The Labyrinth Navigator  
+*A 2D Classic Maze Game for Focused Play and Visual Impact*
 
-A classic Tic-Tac-Toe game built with HTML, CSS, and JavaScript, featuring three exciting game modes: Local 2-Player, Online 2-Player, and Player vs. Computer (AI).
+Navigate intricate mazes, beat the clock, and showcase your reflexes in this single-player puzzle adventure—designed for clarity, responsiveness, and presentation-grade visuals.
 
-## ✨ Features
+---
 
-* **Local 2-Player Mode:** Play against a friend on the same device.
-* **Online 2-Player Mode:** Challenge friends remotely using unique game IDs, powered by Firebase Firestore for real-time synchronization.
-* **Player vs. Computer (AI) Mode:** Test your skills against a simple AI opponent.
-* **Responsive Design:** Enjoy the game seamlessly on various screen sizes (desktop, tablet, mobile).
-* **Modern UI:** Clean and intuitive interface styled with Tailwind CSS.
+## ✨ Game Highlights
 
-## 🚀 Live Demos
+- **Consistent Resolution**  
+  Fixed aspect ratio ensures crisp visuals across projectors and large screens.
 
-You can play the game live at:
+- **Minimalist UI with Depth**  
+  Subtle grid/dot overlays add texture without distracting from gameplay.
 
-* **GitHub Pages:** [GitHub Live Link](https://angkon-kar.github.io/Tic-Tac-Toe/)
-* **Netlify:** [Netlify Live Link](https://aktictactoegame.netlify.app/)
+- **Modular Game States**  
+  Seamless transitions between Home, Level Select, Gameplay, and Results screens.
 
-## 🎮 How to Play
+- **Real-Time Controls**  
+  Smooth, responsive movement for immersive maze navigation.
 
-1.  **Choose Your Mode:** Upon launching the game, you'll be presented with three options:
-    * `Local 2-Player`
-    * `Online 2-Player`
-    * `Player vs. Computer`
+---
 
-2.  **Local 2-Player Mode:**
-    * Select "Local 2-Player".
-    * Players take turns clicking on empty cells to place their 'X' or 'O'.
-    * The first player to get three of their marks in a row (horizontally, vertically, or diagonally) wins!
-    * If all cells are filled and no one wins, it's a draw.
-    * Click "Reset Game" to start a new round.
+## 🕹️ Controls & Gameplay
 
-3.  **Online 2-Player Mode:**
-    * Select "Online 2-Player".
-    * **To Create a Game:** Click "Create New Game". A unique Game ID will be generated and displayed. Copy this ID and share it with your friend.
-    * **To Join a Game:** Enter the Game ID provided by your friend into the "Enter Game ID" field and click "Join Game".
-    * Once both players are connected, the game will begin. Moves will synchronize in real-time.
-    * Player X (the creator) can reset the game. Player O can leave the game by clicking reset.
+### 🎯 Objective  
+Guide your player icon from the start to the exit—without touching maze walls.
 
-4.  **Player vs. Computer Mode:**
-    * Select "Player vs. Computer".
-    * You will play as 'X', and the computer will play as 'O'.
-    * Take your turn, and the AI will make its move shortly after.
-    * Click "Reset Game" to start a new round.
+### ⌨️ Keyboard Controls  
+| Action           | Keys              |
+|------------------|-------------------|
+| Move Up          | `W` or `↑`        |
+| Move Down        | `S` or `↓`        |
+| Move Left        | `A` or `←`        |
+| Move Right       | `D` or `→`        |
+| Restart Level    | `R`               |
+| Return to Menu   | `ESC`             |
 
-## 🛠️ Technologies Used
+---
 
-* **HTML5:** For the game's structure.
-* **CSS3:** For styling, with the help of **Tailwind CSS** for utility-first design.
-* **JavaScript (ES6+):** For game logic, UI interactions, and AI.
-* **Firebase Firestore:** A NoSQL cloud database used for real-time data synchronization in the Online 2-Player mode.
+## 🌐 Live Access & Sharing
 
-## ⚙️ Local Development Setup
+- **GitHub Repository**: [Insert GitHub Link Here]  
+- **Live Demo (Web Assembly)**: [Insert Demo Link Here]
 
-To set up the project locally:
+---
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/angkon-kar/Tic-Tac-Toe.git](https://github.com/angkon-kar/Tic-Tac-Toe.git)
-    cd Tic-Tac-Toe
-    ```
-2.  **Open `index.html`:** Simply open the `index.html` file in your web browser.
-    * Note: For the online multiplayer mode to function correctly, you would typically need to set up a Firebase project and configure it. However, this project is designed to run within an environment that provides Firebase credentials (like the Canvas environment where it was developed). If deploying to your own hosting, you might need to manually configure Firebase in `js/script.js` (by replacing `__firebase_config` and `__initial_auth_token` with your actual project's config and an authentication method).
+## 🛠️ Tech Stack
 
-## 📄 License
+- **Language**: C / C++  
+- **Game Library**: [Insert your library, e.g., Raylib]  
+- **Design Focus**: Clean rendering, modular architecture, and responsive input
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+### 🧩 Architecture Overview  
+The game uses a state-machine system (`currentScreen`) to manage transitions. All rendering logic is centralized in the main loop for performance and clarity.
+
+---
+
+## ⚙️ Setup & Compilation
+
+### 🔧 Requirements  
+- C++ Compiler (GCC, Clang, etc.)  
+- Game library installed and linked (e.g., Raylib)
+
+### 🧪 Build Instructions  
+```bash
+# Example using GCC and Raylib:
+g++ main.cpp -o maze_game -lraylib -lGLESv2
+```
+
+### ▶️ Run the Game  
+```bash
+./maze_game
+```
+
+---
+
+## 🧠 Creator Notes  
+This project is part of a modular game dashboard initiative. Built for clarity, engagement, and scalability—whether you're presenting, learning, or just playing.
 
 ---
